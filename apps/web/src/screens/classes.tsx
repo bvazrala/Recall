@@ -218,7 +218,7 @@ const DAY_NAME: Record<string, string> = { Mon: "Monday", Tue: "Tuesday", Wed: "
 
 export function ClassDetail() {
   const { go } = useNav();
-  const [tab, setTab] = useState<"week" | "topics" | "files">("week");
+  const [tab, setTab] = useState<"week" | "topics" | "files">("topics");
   const topics = useLoad(loadTopics);
   const [day, setDay] = useState(6);
   const sel = WEEK[day];
@@ -237,7 +237,7 @@ export function ClassDetail() {
         <Title size="class" className="mt-1.5">MCAT</Title>
         <p className="mt-1.5 min-h-[1.5em] text-ink-muted">{topics.data && `${plural(topics.data.length, "topic")} and ${plural(cardTotal(topics.data), "card")}.`}</p>
         <div className="mt-[26px]">
-          <Segmented value={tab} onChange={setTab} options={[{ id: "week", label: "Week" }, { id: "topics", label: "Topics" }, { id: "files", label: "Files" }]} />
+          <Segmented value={tab} onChange={setTab} options={[{ id: "topics", label: "Topics" }, { id: "week", label: "Week" }, { id: "files", label: "Files" }]} />
           <FolderPanel>
             {tab === "week" && (
               <div className="anim-in lg:grid lg:grid-cols-[1fr_300px] lg:gap-10">

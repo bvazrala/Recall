@@ -35,7 +35,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const TODAY_NOTE = "highlight absolute font-hand text-[22px] leading-[1.1] text-pen [--highlight-from:35%]";
 
 function Chart({ empty, grid }: { empty?: boolean; grid?: ConfidenceGrid }) {
-  const [mode, setMode] = useState<"reviews" | "retention" | "topics">("retention");
+  const [mode, setMode] = useState<"reviews" | "retention" | "topics">("topics");
   const retention = grid ? retentionSeries(grid) : [];
   const n = 14;
   const x = (i: number) => ((i + 0.5) / n) * 100;
