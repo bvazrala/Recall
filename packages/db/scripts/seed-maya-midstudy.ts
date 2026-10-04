@@ -48,12 +48,13 @@ const STUDY: Record<ConfidenceLevel, { sessions: [number, number]; cards: [numbe
   star: { sessions: [3, 5], cards: [15, 15], skill: 0.95 },
   green: { sessions: [2, 4], cards: [10, 15], skill: 0.88 },
   yellow: { sessions: [1, 3], cards: [6, 12], skill: 0.75 },
+  orange: { sessions: [1, 2], cards: [3, 7], skill: 0.62 },
   red: { sessions: [0, 2], cards: [0, 4], skill: 0.5 },
 };
-// 24 topics: mostly yellow and green, a few red, two stars.
+// 24 topics: mostly yellow and green, a few orange and red, two stars.
 const targets = shuffle<ConfidenceLevel>([
   ...Array<ConfidenceLevel>(2).fill("star"), ...Array<ConfidenceLevel>(10).fill("green"),
-  ...Array<ConfidenceLevel>(9).fill("yellow"), ...Array<ConfidenceLevel>(3).fill("red"),
+  ...Array<ConfidenceLevel>(8).fill("yellow"), ...Array<ConfidenceLevel>(3).fill("orange"), ...Array<ConfidenceLevel>(1).fill("red"),
 ]);
 
 // Days she studied: every past day except a couple of skipped ones (never the first).

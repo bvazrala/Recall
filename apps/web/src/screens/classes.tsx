@@ -174,6 +174,7 @@ const loadTopics = () => api<{ topics: Topic[] }>(forStudent("/topics")).then((r
 
 const LEVEL: Record<ConfidenceLevel, { label: string; strong?: boolean }> = {
   red: { label: "New" },
+  orange: { label: "Shaky" },
   yellow: { label: "Learning" },
   green: { label: "Learning" },
   star: { label: "Strong", strong: true },
