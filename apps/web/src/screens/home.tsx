@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { MessageSquare } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, MessageSquare, Star } from "lucide-react";
 import { AppBar, Button, Chip, Folder, H2, MarkOver, Page, Segmented, Stat, StickyNote, StreakStrip, Title } from "@/components/ui";
 import { LoadError, Loading } from "@/components/load-state";
 import { useDay } from "@/components/day-context";
@@ -10,11 +10,23 @@ import { cardCount, joinNames, minutesFor } from "@/lib/day-data";
 import { cx, useNav, type DayState } from "@/lib/nav";
 import { REVIEWS_PER_DAY, USER } from "@/lib/mock";
 import { retentionSeries, streakOf, weekStrip } from "@/lib/stats";
-import type { ConfidenceGrid, HistoryResponse, Topic } from "@/lib/types";
+import type { ConfidenceGrid, ConfidenceLevel, HistoryResponse, Topic } from "@/lib/types";
 
 const loadHistory = () => api<HistoryResponse>(forStudent("/history"));
 const loadGrid = () => api<ConfidenceGrid>(forStudent("/confidence-grid?days=14"));
 const loadTopics = () => api<{ topics: Topic[] }>(forStudent("/topics")).then((r) => r.topics);
+
+const PAGE_DAYS = 14;
+const MAX_DAYS = 365; // the server's backfill cap
+const LAST_PAGE = Math.floor(MAX_DAYS / PAGE_DAYS) - 1;
+
+const LEVEL_STYLE: Record<ConfidenceLevel, { label: string; bg: string }> = {
+  red: { label: "Lost", bg: "bg-level-red" },
+  orange: { label: "Shaky", bg: "bg-level-orange" },
+  yellow: { label: "Getting there", bg: "bg-level-yellow" },
+  green: { label: "Solid", bg: "bg-level-green" },
+  star: { label: "Mastered", bg: "bg-level-star" },
+};
 
 const fmtDate = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -23,7 +35,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const TODAY_NOTE = "highlight absolute font-hand text-[22px] leading-[1.1] text-pen [--highlight-from:35%]";
 
 function Chart({ empty, grid }: { empty?: boolean; grid?: ConfidenceGrid }) {
-  const [mode, setMode] = useState<"reviews" | "retention">("retention");
+  const [mode, setMode] = useState<"reviews" | "retention" | "topics">("retention");
   const retention = grid ? retentionSeries(grid) : [];
   const n = 14;
   const x = (i: number) => ((i + 0.5) / n) * 100;
@@ -35,9 +47,9 @@ function Chart({ empty, grid }: { empty?: boolean; grid?: ConfidenceGrid }) {
     <section>
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <H2>Your reviews</H2>
-        <Segmented small value={mode} onChange={setMode} options={[{ id: "reviews", label: "Reviews" }, { id: "retention", label: "Retention" }]} />
+        <Segmented small value={mode} onChange={setMode} options={[{ id: "reviews", label: "Reviews" }, { id: "retention", label: "Retention" }, { id: "topics", label: "Topic Mastery" }]} />
       </div>
-      <figure className="mt-[52px]">
+      {mode === "topics" && !empty ? <TopicGrid /> : <figure className="mt-[52px]">
         {mode === "reviews" ? (
           <div className={cx("flex h-[192px] items-end gap-1.5 border-b-2 border-ink px-1 lg:gap-2.5", empty && "opacity-40")} role="img" aria-label="Cards reviewed per day, last 14 days">
             {!empty && REVIEWS_PER_DAY.map((v, i) => {
@@ -83,8 +95,57 @@ function Chart({ empty, grid }: { empty?: boolean; grid?: ConfidenceGrid }) {
                 ? `Retention is ${last.v}%, from ${first.v}% on ${fmtDate(grid!.dates[first.i])}.`
                 : last ? `Retention is ${last.v}% today.` : "Retention shows up after your first review."}
         </figcaption>
-      </figure>
+      </figure>}
     </section>
+  );
+}
+
+// Topics down the side, days across (oldest left, newest right). The endpoint always ends today, so
+// going back a page means asking for a longer window and showing its oldest 14 days.
+function TopicGrid() {
+  const [page, setPage] = useState(0);
+  const load = useCallback(() => api<ConfidenceGrid>(forStudent(`/confidence-grid?days=${PAGE_DAYS * (page + 1)}`)), [page]);
+  const { data, error, loading } = useLoad(load);
+  if (error) return <LoadError error={error} />;
+  if (!data) return <Loading className="h-48" />;
+  const dates = data.dates.slice(0, PAGE_DAYS);
+  const range = `${fmtDate(dates[0])} – ${page === 0 ? "Today" : fmtDate(dates[dates.length - 1])}`;
+  return (
+    <div className={cx("mt-6", loading && "opacity-60")}>
+      <div className="flex items-center justify-between gap-3">
+        <button onClick={() => setPage(page + 1)} disabled={page >= LAST_PAGE || loading} className="flex min-h-11 items-center gap-1 font-bold text-pen hover:text-pen-dark disabled:text-ink-muted/50"><ChevronLeft size={20} aria-hidden />Earlier</button>
+        <span className="font-hand text-[18px] text-ink-muted">{range}</span>
+        <button onClick={() => setPage(page - 1)} disabled={page === 0 || loading} className="flex min-h-11 items-center gap-1 font-bold text-pen hover:text-pen-dark disabled:text-ink-muted/50">Later<ChevronRight size={20} aria-hidden /></button>
+      </div>
+      {data.topics.length === 0 ? <p className="mt-3 font-hand text-[18px] text-ink-muted">No topics yet.</p> : (
+        <div className="mt-2 overflow-x-auto">
+          <table className="w-full min-w-[520px] border-separate border-spacing-x-0.5 border-spacing-y-1">
+            <thead>
+              <tr>
+                <th scope="col" className="sr-only">Topic</th>
+                {dates.map((d) => <th key={d} scope="col" className="text-[12px] font-normal text-ink-muted" title={fmtDate(d)}>{Number(d.slice(8))}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {data.topics.map((t) => (
+                <tr key={t.id}>
+                  <th scope="row" className="sticky left-0 w-[132px] max-w-[132px] truncate bg-paper pr-2 text-left text-[15px] font-bold">{t.name}</th>
+                  {t.cells.slice(0, PAGE_DAYS).map((c, i) => (
+                    <td key={dates[i]} className="p-0">
+                      {c ? (
+                        <span role="img" aria-label={`${t.name}, ${fmtDate(dates[i])}: ${LEVEL_STYLE[c.level].label}`} title={`${fmtDate(dates[i])}: ${LEVEL_STYLE[c.level].label}`} className={cx("flex h-7 items-center justify-center rounded-[3px]", LEVEL_STYLE[c.level].bg)}>
+                          {c.level === "star" && <Star size={14} strokeWidth={2} className="fill-level-yellow text-level-yellow" aria-hidden />}
+                        </span>
+                      ) : <span aria-label="Not studied yet" className="flex h-7 items-center justify-center text-ink-muted/50">–</span>}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }
 
