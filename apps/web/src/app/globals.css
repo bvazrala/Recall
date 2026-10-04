@@ -1,1 +1,109 @@
 @import "tailwindcss";
+
+@theme {
+  --color-paper: #f5f0e6;
+  --color-surface: #fffdf8;
+  --color-ink: #1c1b19;
+  --color-ink-muted: #6b675e;
+  --color-line: rgb(28 27 25 / 0.14);
+  --color-accent: #c93a22;
+  --color-accent-text: #a82e1a;
+  --color-marker: #f6d44c;
+  --color-good: #2f7a55;
+  --color-bubble-blue: #0b84fe;
+  --color-bubble-gray: #e9e9eb;
+
+  --radius-chip: 4px;
+  --radius-ctl: 8px;
+  --radius-card: 12px;
+  --shadow-card: 0 8px 24px -12px rgb(28 27 25 / 0.2);
+}
+
+/* next/font exposes the families as CSS variables on <html>. */
+@theme inline {
+  --font-serif: var(--font-newsreader), Georgia, serif;
+  --font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    overflow-x: clip;
+  }
+  ::selection {
+    background: var(--color-marker);
+    color: var(--color-ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--color-paper);
+  }
+  .mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer utilities {
+  /* Phones: the header row (44px) is pushed down so its text sits level with the Dynamic Island.
+     Desktop keeps the plain 56px bar. */
+  .safe-top {
+    padding-top: max(48px, calc(env(safe-area-inset-top, 0px) - 6px));
+  }
+  .safe-row {
+    height: 44px;
+  }
+  @media (min-width: 1024px) {
+    .safe-top { padding-top: 0; }
+    .safe-row { height: 56px; }
+  }
+  .label {
+    font-size: 12px;
+    line-height: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+  }
+  .marker {
+    background: linear-gradient(transparent 12%, var(--color-marker) 12%, var(--color-marker) 88%, transparent 88%);
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+  .ruled {
+    background-image: repeating-linear-gradient(transparent 0 31px, rgb(169 193 222 / 0.45) 31px 32px);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes indet {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+@keyframes slideout {
+  to { transform: translateX(-120%) rotate(-4deg); opacity: 0; }
+}
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.anim-indet { animation: indet 1.4s ease-in-out infinite; }
+.anim-slideout { animation: slideout 200ms ease-out forwards; }
+.anim-in { animation: fadein 220ms ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}

@@ -49,7 +49,7 @@ export const getDayFlashcards = registerApiRoute("/students/:studentId/day/flash
     if (!inDay) throw new HttpError(404, "That topic is not part of today's day");
 
     const rows = await db
-      .select({ id: cards.id, question: questions.prompt, answer: questions.answer, due: cards.due, reps: cards.reps, lapses: cards.lapses })
+      .select({ id: cards.id, question: questions.prompt, answer: questions.answer, due: cards.due, state: cards.state, reps: cards.reps, lapses: cards.lapses })
       .from(cards)
       .innerJoin(questions, eq(questions.cardId, cards.id))
       .where(and(eq(cards.topicId, topicId), eq(cards.suspended, false)))
