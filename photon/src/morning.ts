@@ -3,7 +3,7 @@ export const NEXT_DAY_KEYWORD = "next day";
 
 const API_URL = process.env.API_URL ?? "http://localhost:4111";
 
-type Level = "red" | "yellow" | "green" | "star";
+type Level = "red" | "orange" | "yellow" | "green" | "star";
 
 // The DayTopic shape the Recall server returns.
 export interface DayTopic {
@@ -27,7 +27,7 @@ export class NotRegisteredError extends Error {}
 
 export const NOT_REGISTERED_TEXT = "This number isn't linked to a Recall student yet.";
 
-const LEVEL_EMOJI: Record<Level, string> = { red: "🔴", yellow: "🟡", green: "🟢", star: "⭐" };
+const LEVEL_EMOJI: Record<Level, string> = { red: "🔴", orange: "🟠", yellow: "🟡", green: "🟢", star: "⭐" };
 
 export function isNextDayRequest(text: string): boolean {
   return text.trim().toLowerCase() === NEXT_DAY_KEYWORD;
