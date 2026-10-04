@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { FileText, GripVertical, MoreHorizontal, Paperclip, Pencil, Plus, X } from "lucide-react";
 import { AppBar, Bar, Button, Card, Chip, CodeChip, Field, Folder, FolderPanel, H2, Highlight, Label, Mark, MarkOver, Page, Row, Segmented, SourceChip, StickyBottom, Title, classBg } from "@/components/ui";
 import { LoadError, Loading } from "@/components/load-state";
@@ -16,8 +17,15 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 // White list on a card, one row per line.
 const LIST = "divide-y divide-line px-3.5";
 
+const loadTopics = () => api<{ topics: Topic[] }>(forStudent("/topics")).then((r) => r.topics);
+
+// Average confidence across topics, as a whole percent.
+const retained = (topics: Topic[]) => (topics.length ? Math.round(topics.reduce((n, t) => n + t.confidenceScore, 0) / topics.length) : 0);
+const cardTotal = (topics: Topic[]) => topics.reduce((n, t) => n + t.flashcardCount, 0);
+
 export function Classes() {
   const { go } = useNav();
+  const { data: topics, error, loading } = useLoad(loadTopics);
   return (
     <>
       <AppBar />
@@ -26,25 +34,25 @@ export function Classes() {
           <Title>My classes</Title>
           <Button variant="secondary" onClick={() => go("add-class")}><Plus {...ICON} />Add a class</Button>
         </div>
-        <ul className="mt-7 grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-7 lg:mt-10 lg:gap-x-10 lg:gap-y-9">
-          {CLASSES.map((c) => {
-            const [exam, when] = c.exam.split(" · ");
-            return (
-              <li key={c.code}>
-                {/* One folder per class. Its tab carries the class color. */}
-                <Folder className="h-full" tab={c.code} tabClassName={cx(classBg(c.code), "text-[14px] font-bold text-white")}>
-                  <button onClick={() => go("class")} className="block w-full text-left after:absolute after:inset-0">
-                    <span className="block font-hand text-[24px] leading-[1.25] text-pen lg:text-[30px]">{c.name}</span>
-                    <span className="mt-1.5 block">{exam} is {when}.</span>
-                    <span className="block text-[15px] text-folder-text">{c.topics} topics and {c.cards} cards.</span>
-                    <span className="mt-4 flex items-center gap-3"><Bar value={c.ret} className="flex-1" /><span className="text-[15px]">{c.ret}% retained</span></span>
-                    <span className="mt-3 block text-[15px] text-folder-text">Next up: <span className="text-ink">{c.next}</span>.</span>
-                  </button>
-                </Folder>
-              </li>
-            );
-          })}
-        </ul>
+        {error ? <div className="mt-7"><LoadError error={error} /></div> : loading || !topics ? <Loading className="mt-7 h-48" /> : (
+          <ul className="mt-7 grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-7 lg:mt-10 lg:gap-x-10 lg:gap-y-9">
+            {CLASSES.map((c) => {
+              const ret = retained(topics);
+              return (
+                <li key={c.code}>
+                  {/* One folder per class. Its tab carries the class color. */}
+                  <Folder className="h-full" tab={c.code} tabClassName={cx(classBg(c.code), "text-[14px] font-bold text-white")}>
+                    <button onClick={() => go("class")} className="block w-full text-left after:absolute after:inset-0">
+                      <span className="block font-hand text-[24px] leading-[1.25] text-pen lg:text-[30px]">{c.name}</span>
+                      <span className="mt-1.5 block text-[15px] text-folder-text">{plural(topics.length, "topic")} and {plural(cardTotal(topics), "card")}.</span>
+                      <span className="mt-4 flex items-center gap-3"><Bar value={ret} className="flex-1" /><span className="text-[15px]">{ret}% retained</span></span>
+                    </button>
+                  </Folder>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </Page>
     </>
   );
@@ -170,8 +178,6 @@ export function Confirm() {
   );
 }
 
-const loadTopics = () => api<{ topics: Topic[] }>(forStudent("/topics")).then((r) => r.topics);
-
 const LEVEL: Record<ConfidenceLevel, { label: string; strong?: boolean }> = {
   red: { label: "New" },
   orange: { label: "Shaky" },
@@ -180,9 +186,8 @@ const LEVEL: Record<ConfidenceLevel, { label: string; strong?: boolean }> = {
   star: { label: "Strong", strong: true },
 };
 
-function TopicsTab() {
-  const { go } = useNav();
-  const { data, error, loading } = useLoad(loadTopics);
+function TopicsTab({ data, error, loading }: { data?: Topic[]; error?: Error; loading: boolean }) {
+  const router = useRouter();
   if (error) return <LoadError error={error} />;
   if (loading || !data) return <Loading className="h-48" />;
   if (data.length === 0) return <p className="font-hand text-[18px] text-folder-text">No topics yet.</p>;
@@ -193,7 +198,7 @@ function TopicsTab() {
           const lv = LEVEL[t.confidenceLevel];
           return (
             <li key={t.id}>
-              <button onClick={() => go("topic")} className="block w-full px-3.5 py-3 text-left">
+              <button onClick={() => router.push(`/flashcards/study?topic=${t.id}`)} className="block w-full px-3.5 py-3 text-left">
                 <span className="flex items-baseline justify-between gap-3">
                   <span className="font-bold">{t.name}</span>
                   <span className={cx("flex shrink-0 items-center gap-1 font-hand text-[15px]", lv.strong ? "text-pen" : "text-ink-muted")}>{lv.strong && <Mark kind="check" size={14} strokeWidth={3} />}{lv.label}</span>
@@ -214,6 +219,7 @@ const DAY_NAME: Record<string, string> = { Mon: "Monday", Tue: "Tuesday", Wed: "
 export function ClassDetail() {
   const { go } = useNav();
   const [tab, setTab] = useState<"week" | "topics" | "files">("week");
+  const topics = useLoad(loadTopics);
   const [day, setDay] = useState(6);
   const sel = WEEK[day];
   const today = sel.s === "today";
@@ -227,9 +233,9 @@ export function ClassDetail() {
     <>
       <AppBar back="classes" />
       <Page>
-        <CodeChip code="BIOL 2210" />
-        <Title size="class" className="mt-1.5">Cell Biology</Title>
-        <p className="mt-1.5 text-ink-muted">Exam 2 is Oct 16, in 12 days.</p>
+        <CodeChip code="MCAT" />
+        <Title size="class" className="mt-1.5">MCAT</Title>
+        <p className="mt-1.5 min-h-[1.5em] text-ink-muted">{topics.data && `${plural(topics.data.length, "topic")} and ${plural(cardTotal(topics.data), "card")}.`}</p>
         <div className="mt-[26px]">
           <Segmented value={tab} onChange={setTab} options={[{ id: "week", label: "Week" }, { id: "topics", label: "Topics" }, { id: "files", label: "Files" }]} />
           <FolderPanel>
@@ -280,7 +286,7 @@ export function ClassDetail() {
               </div>
             )}
 
-            {tab === "topics" && <TopicsTab />}
+            {tab === "topics" && <TopicsTab {...topics} />}
 
             {tab === "files" && (
               <Card className="anim-in">

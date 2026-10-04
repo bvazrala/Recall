@@ -39,6 +39,15 @@
 }
 
 @layer base {
+  /* Tailwind v4 resets buttons to the default cursor; clickable things should show the hand. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary,
+  select,
+  label:has(input[type="checkbox"], input[type="radio"]) {
+    cursor: pointer;
+  }
+
   html {
     background: var(--color-paper);
     color: var(--color-ink);
