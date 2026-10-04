@@ -2,7 +2,7 @@
 
 Spaced repetition that enhances study methods through text messages. A student gets about one text a day with a review question, replies with an answer, and Recall grades it and schedules the next review using the [FSRS](https://github.com/open-spaced-repetition/ts-fsrs) algorithm.
 
-> **Status:** early scaffold. Scheduling logic, the `students` table, the Mastra server and a placeholder dashboard work. Grading, inbound message handling, the agent and Photon integration are not built yet.
+> **Status:** early scaffold. Scheduling logic, the study-day API and the web app's Home, Flashcards and Study screens work against the real server. The rest of the web UI (classes, quizzes, uploads, settings, auth) is built to the design but runs on placeholder data. Grading, inbound message handling, the agent and Photon integration are not built yet.
 
 ## Tech stack
 
@@ -33,7 +33,9 @@ cp apps/web/.env.example apps/web/.env.local
 pnpm --filter @recall/web dev
 ```
 
-Open http://localhost:3000/dashboard. It fetches `/example` from the Mastra server, so the server must be running or the page will error.
+Open http://localhost:3000 for the landing page, or http://localhost:3000/home for the dashboard. The data-backed screens (Home, Flashcards, Study, the Topics tab of a class) call the Mastra server, so it must be running with a working `DATABASE_URL`.
+
+**Pick a student for the web app.** There is no sign-in yet, so the web app acts as a single student chosen by `NEXT_PUBLIC_STUDENT_ID` in `apps/web/.env.local`. It must be a real `students.id` **UUID** (the server returns `400` for anything else, e.g. `1`). Find one with `select id from students;`. A student with no topics sees the empty Home state; add topics and flashcards through the API (see below) to see the full dashboard. Restart the web dev server after changing the variable, since `NEXT_PUBLIC_` values are read at startup.
 
 Mastra's Studio (a dev UI for agents) is served at http://localhost:4111.
 
@@ -97,7 +99,7 @@ DayTopic  = { topicId, name, position: number,            // 1 = lowest confiden
 | Route | Body / query | Success response |
 |---|---|---|
 | `GET /students/:studentId/day` | none | `200` `{ day: { number, status: "open" \| "closed", startedAt }, topics: DayTopic[] }`. The first call of a day picks and freezes the 5 topics (fewer if the student has fewer); later calls return the same list with current scores |
-| `GET /students/:studentId/day/flashcards` | `?topicId=` (required, must be one of today's topics) | `200` `{ flashcards: { id, question, answer, due, reps, lapses }[] }`, earliest due first. `409` if the day hasn't been opened, `404` if the topic isn't in today's list |
+| `GET /students/:studentId/day/flashcards` | `?topicId=` (required, must be one of today's topics) | `200` `{ flashcards: { id, question, answer, due, state, reps, lapses }[] }`, earliest due first. `409` if the day hasn't been opened, `404` if the topic isn't in today's list |
 | `POST /flashcards/:cardId/review` | `{ rating: 1 \| 2 \| 3 \| 4 }` | `200` `{ card: { id, due, state, reps, lapses }, topic: { id, previousLevel, score, level } }`. `409` if the card's topic isn't in the open day |
 | `POST /students/:studentId/day/close` | `{ dayNumber?: number, overrides?: { topicId, level }[] }` | `200` `{ closed: { number, topics: DayTopic[] }, next: { number, topics: DayTopic[] } }`. Closing also opens the next day |
 | `GET /students/:studentId/history` | none | `200` `{ currentDay: number, days: { number, status, startedAt, closedAt: string \| null, topics: DayTopic[] }[] }`, oldest first |
@@ -139,6 +141,7 @@ curl -X POST localhost:4111/students/$SID/day/close -H 'content-type: applicatio
 pnpm test           # Vitest, in packages that define tests (currently core)
 pnpm typecheck      # tsc across every workspace package
 pnpm db:generate    # generate a migration after changing the schema
+pnpm --filter @recall/web build   # production build of the web app (also type-checks it)
 ```
 
 Try the API without the frontend:
@@ -155,9 +158,20 @@ apps/
   server/                 Mastra server (the backend)
     src/mastra/index.ts     Mastra config: port, CORS, and the list of API routes
     src/mastra/routes/      One file per custom API route
-  web/                    Next.js dashboard
-    src/app/                Pages (App Router)
-    src/lib/api.ts          Helper for calling the Mastra server
+  web/                    Next.js web app
+    src/app/                Routes (App Router). Each page.tsx is a thin wrapper around a screen
+      (app)/                  Pages inside the sidebar/drawer shell: home, classes, quizzes, flashcards, settings
+      (bare)/                 Full-bleed pages with no shell: landing, login, signup, flashcards/study, quizzes/take
+    src/screens/            The screen components, one file per area (home, flashcards, study, classes, quizzes, settings, public)
+    src/components/         ui.tsx (design primitives: Button, Card, Chip, Bar, ...), app-shell.tsx, day-context.tsx, load-state.tsx
+    src/lib/api.ts          fetch helper, useLoad hook, and the student id (NEXT_PUBLIC_STUDENT_ID)
+    src/lib/types.ts        Response shapes of the server routes the web app uses
+    src/lib/day-data.ts     Loads today's day plus each topic's flashcards
+    src/lib/stats.ts        Streak and retention series from /history and /confidence-grid
+    src/lib/nav.tsx         Screen name -> URL map (ROUTES) and the useNav() hook
+    src/lib/mock.ts         Placeholder data for screens with no backend yet
+    src/app/globals.css     Design tokens (colors, radii, fonts) in a Tailwind @theme block
+photon/                   Spectrum (iMessage) integration; has its own README and is not part of the pnpm workspace apps
 packages/
   core/                   Pure logic with no database or network code (@recall/core)
     src/fsrs/               Scheduling: grade + confidence -> rating, review a card, retrievability
@@ -167,6 +181,23 @@ packages/
     src/schema/             One file per table, re-exported from index.ts
     migrations/             Generated SQL. Do not edit by hand.
 ```
+
+### Web screens: real data vs placeholders
+
+| Screen | Route | Data |
+|---|---|---|
+| Home | `/home` | Real: `/day`, `/history`, `/confidence-grid`, `/topics`. The chart's Reviews tab, the "next text" time and the user's name are placeholders |
+| Flashcards | `/flashcards` | Real: today's topics and their cards |
+| Study | `/flashcards/study` (`?topic=<id>` for one topic) | Real: posts each rating to `/flashcards/:id/review` |
+| Class detail, Topics tab | `/classes/<class>` | Real: `/topics` |
+| Classes, add class, upload and confirm flow, Week and Files tabs, study guide | `/classes/...` | Placeholder. Needs a classes entity and syllabus upload/extraction |
+| Quizzes | `/quizzes/...` | Placeholder. Needs quiz routes (the `quiz_sessions` table exists) |
+| Settings | `/settings` | Placeholder, local state only |
+| Landing, login, signup | `/`, `/login`, `/signup` | Static. Auth is not wired; the forms go straight to `/home` |
+
+Placeholder content is all in [apps/web/src/lib/mock.ts](apps/web/src/lib/mock.ts), with a comment on the backend each piece is waiting for. When a route is added, replace the mock import with a call to it.
+
+The visual design comes from a Figma Make file. Colors, fonts, radii and spacing are defined once in `globals.css` and used through Tailwind classes (`bg-paper`, `text-ink-muted`, `rounded-card`, `font-serif`, ...), so match those rather than hard-coding values.
 
 ### How the pieces fit
 
@@ -179,7 +210,7 @@ packages/
 
 **An API route.** Copy [apps/server/src/mastra/routes/example.ts](apps/server/src/mastra/routes/example.ts), change the path and handler, then add it to `apiRoutes` in [apps/server/src/mastra/index.ts](apps/server/src/mastra/index.ts). Custom routes are served at the server root (`/example`), not under `/api`; that prefix is for Mastra's built-in endpoints. Set `requiresAuth` explicitly on every route.
 
-**A page.** Add a folder under `apps/web/src/app/` with a `page.tsx`. Call the server with `api("/your-route")` from `src/lib/api.ts`.
+**A page.** Build the screen in `apps/web/src/screens/` and add a folder under `apps/web/src/app/` with a `page.tsx` that renders it. Put it in `(app)/` to get the sidebar and drawer, or `(bare)/` for a full-bleed page. To link to it by name, add it to `ROUTES` in `src/lib/nav.tsx`. Load data with `useLoad(() => api(forStudent("/your-route")))` from `src/lib/api.ts`, and use the primitives in `src/components/ui.tsx` instead of restyling.
 
 **A database table.**
 1. Add `packages/db/src/schema/<table>.ts`.
