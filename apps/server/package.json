@@ -1,0 +1,12 @@
+{
+  "name": "@recall/server",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@recall/core": "workspace:*",
+    "@recall/db": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "4.23.15"
+  }
+}

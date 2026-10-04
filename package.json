@@ -5,7 +5,9 @@
   "engines": {
     "node": ">=22.13"
   },
-  "scripts": {},
+  "scripts": {
+    "typecheck": "pnpm -r exec tsc -p ."
+  },
   "devDependencies": {
     "typescript": "6.0.3"
   }
