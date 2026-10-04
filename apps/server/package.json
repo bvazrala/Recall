@@ -6,9 +6,12 @@
     "@mastra/core": "1.74.0",
     "@recall/core": "workspace:*",
     "@recall/db": "workspace:*",
+    "heic-decode": "2.1.0",
+    "sharp": "0.35.5",
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@types/heic-decode": "2.0.0",
     "mastra": "1.32.1",
     "tsx": "4.23.15",
     "typescript": "6.0.3"
@@ -17,6 +20,7 @@
     "dev": "NODE_OPTIONS=--import=tsx mastra dev",
     "build": "mastra build",
     "start": "mastra start",
-    "check": "tsx src/check.ts"
+    "check": "tsx src/check.ts",
+    "claude:check": "tsx scripts/claude-check.ts"
   }
 }
