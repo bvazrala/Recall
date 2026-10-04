@@ -1,7 +1,7 @@
 import { boolean, date, integer, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { students } from "./students";
 
-export const CONFIDENCE_LEVELS = ["red", "yellow", "green", "star"] as const;
+export const CONFIDENCE_LEVELS = ["red", "orange", "yellow", "green", "star"] as const;
 export type ConfidenceLevel = (typeof CONFIDENCE_LEVELS)[number];
 
 // Something the student is studying. Holds many flashcards (cards with a topicId).
