@@ -6,12 +6,8 @@ export const USER = { name: "Maya Chen", first: "Maya", email: "maya.chen@exampl
 // Needs: review log counts per day (reviews table exists, no route).
 export const REVIEWS_PER_DAY = [18, 22, 9, 0, 25, 19, 14, 12, 21, 6, 0, 17, 24, 14];
 
-// Needs: a classes entity (topics are flat today).
-export const CLASSES = [
-  { code: "BIOL 2210", name: "Cell Biology", topics: 12, cards: 214, ret: 78, next: "Glycolysis, today", exam: "Exam 2 · Oct 16" },
-  { code: "CHEM 2420", name: "Organic Chemistry II", topics: 10, cards: 168, ret: 71, next: "Aldol reactions, tomorrow", exam: "Midterm · Oct 21" },
-  { code: "ECON 1010", name: "Macroeconomics", topics: 9, cards: 122, ret: 84, next: "Fiscal multipliers, Tue", exam: "Exam 1 · Oct 9" },
-];
+// Needs: a classes entity (topics are flat today). Maya has one class, MCAT, holding all of her topics.
+export const CLASSES = [{ code: "MCAT", name: "MCAT" }];
 
 // Needs: syllabus upload + topic extraction.
 export const PLAN_STEPS = ["Reading your file", "Finding topics", "Planning your weeks", "Writing flashcards and quizzes"];
