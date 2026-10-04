@@ -104,8 +104,18 @@ async function persist(plan: Plan) {
   const { db, pool } = createDb(url);
   try {
     await db.transaction(async (tx) => {
+      // The database is shared, so a re-seed without SEED_PHONE keeps whatever number Maya is linked to
+      // (someone's real phone for the iMessage demo) instead of resetting it to the placeholder.
+      if (!process.env.SEED_PHONE) {
+        const existing = await tx.query.students.findFirst({ where: eq(students.id, MAYA_ID) });
+        if (existing?.phone) {
+          plan.student.phone = existing.phone;
+          console.log(`Kept Maya's phone ${existing.phone} (set SEED_PHONE to change it).`);
+        }
+      }
       // Also clears an older row saved without the "+".
-      const phones = [MAYA_PHONE, MAYA_PHONE.replace(/\D/g, "")];
+      const phone = plan.student.phone ?? MAYA_PHONE;
+      const phones = [phone, phone.replace(/\D/g, "")];
       await tx.delete(students).where(or(eq(students.id, MAYA_ID), inArray(students.phone, phones)));
       await tx.insert(students).values(plan.student);
       await insertChunks(plan.topics, (c) => tx.insert(topics).values(c));

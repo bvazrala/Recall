@@ -1,7 +1,7 @@
 import { Spectrum } from "spectrum-ts";
 import { imessage } from "@spectrum-ts/imessage";
 import { appCard, isAppRequest, NO_QUIZ_URL_TEXT, quizUrl } from "./app-card.ts";
-import { AlreadyAdvancedError, formatMorning, isNextDayRequest, startNextDay } from "./morning.ts";
+import { AlreadyAdvancedError, formatMorning, isNextDayRequest, NOT_REGISTERED_TEXT, NotRegisteredError, startNextDay } from "./morning.ts";
 import { askRecall } from "./chat.ts";
 import { startOutbox } from "./outbox.ts";
 
@@ -41,6 +41,10 @@ for await (const [space, message] of app.messages) {
       if (url) await space.send(appCard(url));
     } catch (err) {
       if (err instanceof AlreadyAdvancedError) continue; // two requests raced; the other one already moved the day
+      if (err instanceof NotRegisteredError) {
+        await space.send(NOT_REGISTERED_TEXT);
+        continue;
+      }
       console.error(err);
       await space.send("Couldn't start the next day. Is the Recall server running?");
     }
@@ -51,8 +55,12 @@ for await (const [space, message] of app.messages) {
       const reply = await askRecall(message.sender.id, message.content.text, message.id);
       if (reply) await space.send(reply);
     } catch (err) {
-      console.error(err);
-      await space.send("Recall is offline right now. Try again in a bit.");
+      if (err instanceof NotRegisteredError) {
+        await space.send(NOT_REGISTERED_TEXT);
+      } else {
+        console.error(err);
+        await space.send("Recall is offline right now. Try again in a bit.");
+      }
     } finally {
       await space.stopTyping().catch(() => {});
     }
