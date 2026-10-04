@@ -14,7 +14,7 @@
     "typescript": "6.0.3"
   },
   "scripts": {
-    "dev": "mastra dev",
+    "dev": "NODE_OPTIONS=--import=tsx mastra dev",
     "build": "mastra build",
     "start": "mastra start",
     "check": "tsx src/check.ts"

@@ -47,6 +47,75 @@ pnpm db:migrate                                # apply migrations
 pnpm db:check                                  # insert, read back and delete a test student
 ```
 
+### Study-day API
+
+Students study **topics**, each with flashcards. Every topic has a confidence level (`red` < `yellow` < `green` < `star`) backed by a 0-100 score. At the start of each day the 5 lowest-confidence topics are suggested and frozen for that day. Self-rating flashcards raises confidence. At the end of the day the student can override levels, then the day number advances.
+
+Set `DATABASE_URL` in `apps/server/.env` first. There is no auth yet: routes take `studentId` in the path.
+
+**Conventions**
+- All ids are UUIDs; a malformed id returns `400`.
+- Request bodies are JSON and are validated by the Zod schemas in [packages/core/src/schemas/index.ts](packages/core/src/schemas/index.ts).
+- Errors are `{ "error": "message" }`. A `400` from validation also has `issues`. Statuses used: `400` bad input, `404` not found, `409` conflict.
+- Timestamps are ISO 8601 strings, on the student's clock (see `nowFor` in `core/clock.ts`).
+- Levels are `"red" | "yellow" | "green" | "star"`. Score bands: red 0-24, yellow 25-49, green 50-74, star 75-100. Ratings are `1` Again, `2` Hard, `3` Good, `4` Easy. Scores and per-rating changes live in `packages/core/src/confidence/levels.ts`.
+
+Shapes used below:
+
+```ts
+Topic     = { id, studentId, name, description: string | null, confidenceScore: number,
+              confidenceLevel: Level, lastStudiedAt: string | null, archived: boolean, createdAt: string }
+Flashcard = { id, topicId, questionId, question: string, answer: string,
+              due: string, state: number, reps: number, lapses: number, createdAt: string }
+DayTopic  = { topicId, name, position: number,            // 1 = lowest confidence
+              scoreBefore, levelBefore,                    // when the day opened
+              scoreNow, levelNow,                          // current
+              scoreAfter: number | null, levelAfter: Level | null, // set when the day closes
+              overridden: boolean }
+```
+
+#### Topics
+
+| Route | Body / query | Success response |
+|---|---|---|
+| `GET /students/:studentId/topics` | `?includeArchived=true` (optional) | `200` `{ topics: (Topic & { flashcardCount })[] }`, lowest confidence first |
+| `POST /students/:studentId/topics` | `{ name: string (1-120), description?: string (max 500) }` | `201` `{ topic: Topic }`. `409` if the name already exists for this student |
+| `PATCH /topics/:topicId` | any of `{ name, description (string or null), archived }`, at least one | `200` `{ topic: Topic }`. `409` on a duplicate name |
+| `DELETE /topics/:topicId` | none | `204`. Also deletes the topic's flashcards and its history in past days |
+
+#### Flashcards
+
+| Route | Body / query | Success response |
+|---|---|---|
+| `GET /topics/:topicId/flashcards` | none | `200` `{ flashcards: Flashcard[] }`, oldest first |
+| `POST /topics/:topicId/flashcards` | `{ question: string (1-2000), answer: string (1-4000) }` | `201` `{ flashcard: Flashcard }` |
+| `PATCH /flashcards/:cardId` | `{ question?, answer? }`, at least one | `200` `{ flashcard: Flashcard }` |
+| `DELETE /flashcards/:cardId` | none | `204` |
+
+#### Daily loop
+
+| Route | Body / query | Success response |
+|---|---|---|
+| `GET /students/:studentId/day` | none | `200` `{ day: { number, status: "open" \| "closed", startedAt }, topics: DayTopic[] }`. The first call of a day picks and freezes the 5 topics (fewer if the student has fewer); later calls return the same list with current scores |
+| `GET /students/:studentId/day/flashcards` | `?topicId=` (required, must be one of today's topics) | `200` `{ flashcards: { id, question, answer, due, reps, lapses }[] }`, earliest due first. `409` if the day hasn't been opened, `404` if the topic isn't in today's list |
+| `POST /flashcards/:cardId/review` | `{ rating: 1 \| 2 \| 3 \| 4 }` | `200` `{ card: { id, due, state, reps, lapses }, topic: { id, previousLevel, score, level } }`. `409` if the card's topic isn't in the open day |
+| `POST /students/:studentId/day/close` | `{ dayNumber?: number, overrides?: { topicId, level }[] }` | `200` `{ closed: { number, topics: DayTopic[] }, next: { number, topics: DayTopic[] } }`. Closing also opens the next day |
+| `GET /students/:studentId/history` | none | `200` `{ currentDay: number, days: { number, status, startedAt, closedAt: string \| null, topics: DayTopic[] }[] }`, oldest first |
+
+Notes on closing a day:
+- Always send `dayNumber` (the day you think you are closing). If it isn't the current day, the server returns `409` instead of closing the next day, so a double click or a retry is safe.
+- An override to a different level sets the score to the middle of that level's band (red 12, yellow 37, green 62, star 87) and marks the topic `overridden`. An override to the level a topic already has changes nothing.
+- A topic in `overrides` that isn't part of the day returns `400`.
+
+Example, one day end to end:
+
+```bash
+curl localhost:4111/students/$SID/day
+curl -X POST localhost:4111/flashcards/$CARD/review -H 'content-type: application/json' -d '{"rating":3}'
+curl -X POST localhost:4111/students/$SID/day/close -H 'content-type: application/json' \
+  -d '{"dayNumber":1,"overrides":[{"topicId":"'$TOPIC'","level":"green"}]}'
+```
+
 ### Everyday commands
 
 ```bash
