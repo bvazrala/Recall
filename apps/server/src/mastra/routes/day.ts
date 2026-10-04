@@ -1,6 +1,5 @@
 import { registerApiRoute } from "@mastra/core/server";
 import {
-  applyRating,
   cardFromRow,
   closeDayBody,
   levelForScore,
@@ -12,6 +11,7 @@ import {
 } from "@recall/core";
 import { and, asc, cards, eq, questions, reviews, students, studyDays, studyDayTopics, topics } from "@recall/db";
 import { getDb } from "../../db";
+import { ensureConfidence, latestConfidence, recordTopic, setTodayScore } from "../../lib/confidence";
 import { dayTopics, findCurrentDay, getStudent, openCurrentDay } from "../../lib/day";
 import { guard, HttpError, idParam, idQuery, parseBody } from "../../lib/http";
 
@@ -22,7 +22,9 @@ export const getDay = registerApiRoute("/students/:studentId/day", {
   handler: guard(async (c) => {
     const db = getDb();
     const student = await getStudent(db, idParam(c, "studentId"));
-    const day = await openCurrentDay(db, student, nowFor(student.clockOffsetMs));
+    const now = nowFor(student.clockOffsetMs);
+    await ensureConfidence(db, student, now);
+    const day = await openCurrentDay(db, student, now);
     return c.json({
       day: { number: day.dayNumber, status: day.status, startedAt: day.startedAt },
       topics: await dayTopics(db, day.id),
@@ -56,7 +58,7 @@ export const getDayFlashcards = registerApiRoute("/students/:studentId/day/flash
   }),
 });
 
-// Self-rate one flashcard: updates the card's FSRS schedule and nudges its topic's confidence.
+// Self-rate one flashcard: updates the card's FSRS schedule and recomputes its topic's confidence for today.
 export const reviewFlashcard = registerApiRoute("/flashcards/:cardId/review", {
   method: "POST",
   requiresAuth: false,
@@ -81,8 +83,9 @@ export const reviewFlashcard = registerApiRoute("/flashcards/:cardId/review", {
         }));
       if (!day || !inDay) throw new HttpError(409, "This flashcard's topic is not part of the open day");
 
-      // Lock the topic so two quick reviews don't overwrite each other's score.
+      // Lock the topic so two quick reviews don't compute its score from a stale set of cards.
       const [topic] = await tx.select().from(topics).where(eq(topics.id, card.topicId)).for("update");
+      const before = await latestConfidence(tx, topic.id);
 
       const { card: next, log } = reviewCard(cardFromRow(card), rating, now);
       await tx.update(cards).set(next).where(eq(cards.id, cardId));
@@ -102,13 +105,13 @@ export const reviewFlashcard = registerApiRoute("/flashcards/:cardId/review", {
         reviewedAt: now,
       });
 
-      const score = applyRating(topic.confidenceScore, rating);
+      await tx.update(topics).set({ lastStudiedAt: now }).where(eq(topics.id, topic.id));
+      const score = await recordTopic(tx, student, topic.id, now);
       const level = levelForScore(score);
-      await tx.update(topics).set({ confidenceScore: score, confidenceLevel: level, lastStudiedAt: now }).where(eq(topics.id, topic.id));
 
       return {
         card: { id: cardId, due: next.due, state: next.state, reps: next.reps, lapses: next.lapses },
-        topic: { id: topic.id, previousLevel: topic.confidenceLevel, score, level },
+        topic: { id: topic.id, previousLevel: before.confidenceLevel, score, level },
       };
     });
     return c.json(result);
@@ -136,6 +139,7 @@ export const closeDay = registerApiRoute("/students/:studentId/day/close", {
       const day = await findCurrentDay(tx, locked);
       if (!day || day.status !== "open") throw new HttpError(409, "No open day to close");
 
+      await ensureConfidence(tx, locked, now);
       const rows = await dayTopics(tx, day.id);
       const wanted = new Map(overrides.map((o) => [o.topicId, o.level]));
       for (const id of wanted.keys()) {
@@ -148,9 +152,8 @@ export const closeDay = registerApiRoute("/students/:studentId/day/close", {
         const overridden = level !== undefined && level !== row.levelNow;
         const score = overridden ? scoreForLevel(level) : row.scoreNow;
         const finalLevel = overridden ? level : row.levelNow;
-        if (overridden) {
-          await tx.update(topics).set({ confidenceScore: score, confidenceLevel: finalLevel }).where(eq(topics.id, row.topicId));
-        }
+        // An override only changes today's cell. Tomorrow's score comes from the cards again.
+        if (overridden) await setTodayScore(tx, locked, row.topicId, score, now);
         await tx
           .update(studyDayTopics)
           .set({ scoreAfter: score, levelAfter: finalLevel, overridden })

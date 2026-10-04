@@ -1,6 +1,8 @@
 import { registerApiRoute } from "@mastra/core/server";
 import { asc, eq, studyDays } from "@recall/db";
 import { getDb } from "../../db";
+import { nowFor } from "@recall/core";
+import { ensureConfidence } from "../../lib/confidence";
 import { dayTopics, getStudent } from "../../lib/day";
 import { guard, idParam } from "../../lib/http";
 
@@ -11,6 +13,7 @@ export const getHistory = registerApiRoute("/students/:studentId/history", {
   handler: guard(async (c) => {
     const db = getDb();
     const student = await getStudent(db, idParam(c, "studentId"));
+    await ensureConfidence(db, student, nowFor(student.clockOffsetMs));
     const days = await db.select().from(studyDays).where(eq(studyDays.studentId, student.id)).orderBy(asc(studyDays.dayNumber));
     const history = await Promise.all(
       days.map(async (d) => ({

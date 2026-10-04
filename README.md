@@ -49,7 +49,7 @@ pnpm db:check                                  # insert, read back and delete a 
 
 ### Study-day API
 
-Students study **topics**, each with flashcards. Every topic has a confidence level (`red` < `yellow` < `green` < `star`) backed by a 0-100 score. At the start of each day the 5 lowest-confidence topics are suggested and frozen for that day. Self-rating flashcards raises confidence. At the end of the day the student can override levels, then the day number advances.
+Students study **topics**, each with flashcards. Every topic has a confidence level (`red` < `yellow` < `green` < `star`) backed by a 0-100 score. At the start of each day the 5 lowest-confidence topics are suggested and frozen for that day. Confidence is how likely the student is to remember a topic right now, so it rises when they review and falls as days pass without studying (see below). At the end of the day the student can override levels, then the day number advances.
 
 Set `DATABASE_URL` in `apps/server/.env` first. There is no auth yet: routes take `studentId` in the path.
 
@@ -58,7 +58,7 @@ Set `DATABASE_URL` in `apps/server/.env` first. There is no auth yet: routes tak
 - Request bodies are JSON and are validated by the Zod schemas in [packages/core/src/schemas/index.ts](packages/core/src/schemas/index.ts).
 - Errors are `{ "error": "message" }`. A `400` from validation also has `issues`. Statuses used: `400` bad input, `404` not found, `409` conflict.
 - Timestamps are ISO 8601 strings, on the student's clock (see `nowFor` in `core/clock.ts`).
-- Levels are `"red" | "yellow" | "green" | "star"`. Score bands: red 0-24, yellow 25-49, green 50-74, star 75-100. Ratings are `1` Again, `2` Hard, `3` Good, `4` Easy. Scores and per-rating changes live in `packages/core/src/confidence/levels.ts`.
+- Levels are `"red" | "yellow" | "green" | "star"`. Score bands: red 0-24, yellow 25-49, green 50-74, star 75-100. Ratings are `1` Again, `2` Hard, `3` Good, `4` Easy. Score bands live in `packages/core/src/confidence/levels.ts`; how a score is computed lives in `score.ts` beside it.
 
 Shapes used below:
 
@@ -101,6 +101,23 @@ DayTopic  = { topicId, name, position: number,            // 1 = lowest confiden
 | `POST /flashcards/:cardId/review` | `{ rating: 1 \| 2 \| 3 \| 4 }` | `200` `{ card: { id, due, state, reps, lapses }, topic: { id, previousLevel, score, level } }`. `409` if the card's topic isn't in the open day |
 | `POST /students/:studentId/day/close` | `{ dayNumber?: number, overrides?: { topicId, level }[] }` | `200` `{ closed: { number, topics: DayTopic[] }, next: { number, topics: DayTopic[] } }`. Closing also opens the next day |
 | `GET /students/:studentId/history` | none | `200` `{ currentDay: number, days: { number, status, startedAt, closedAt: string \| null, topics: DayTopic[] }[] }`, oldest first |
+
+#### How confidence works
+
+A topic's score is the stability-weighted mean of its flashcards' FSRS recall chance (0-100). Cards that have never been reviewed count as 0, suspended cards are ignored, and a topic with no cards scores 0. A review of one card changes its stability, so well-learned cards both score higher and fade more slowly.
+
+The score is stored once per student-local calendar date in `topic_confidence_days` (`topicId, date, score, overridden`). That table is the only place confidence is stored; levels are always derived from the score.
+- Anything that changes a topic's cards (a review, adding or deleting a flashcard, creating the topic) writes that day's row.
+- Every read that shows confidence first fills in the days nothing happened (up to 365), so decay shows up in the history without a nightly job. Moving a demo student's clock forward and reading again produces the decayed days.
+- A manual override in "close day" changes that date's cell only. It is kept until the topic's cards next change; the following day's score comes from the cards again.
+
+#### Confidence grid
+
+| Route | Body / query | Success response |
+|---|---|---|
+| `GET /students/:studentId/confidence-grid` | `?days=30` (1-365), `?includeArchived=true` (optional) | `200` `{ dates: string[], topics: { id, name, archived, current: { score, level }, cells: ({ score, level, overridden } \| null)[] }[] }` |
+
+`dates` are the student's local calendar dates (`YYYY-MM-DD`), oldest first, ending today. `cells` has one entry per date; `null` means the topic did not exist yet. Topics are ordered lowest confidence first.
 
 Notes on closing a day:
 - Always send `dayNumber` (the day you think you are closing). If it isn't the current day, the server returns `409` instead of closing the next day, so a double click or a retry is safe.

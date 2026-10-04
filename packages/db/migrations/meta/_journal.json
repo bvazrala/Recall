@@ -22,6 +22,13 @@
       "when": 1791097556538,
       "tag": "0002_steady_scarecrow",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791105250751,
+      "tag": "0003_purple_harrier",
+      "breakpoints": true
     }
   ]
 }

@@ -2,6 +2,7 @@ import { registerApiRoute } from "@mastra/core/server";
 import { createFlashcardBody, newCard, nowFor, updateFlashcardBody } from "@recall/core";
 import { and, asc, cards, eq, isNotNull, questions, topics } from "@recall/db";
 import { getDb } from "../../db";
+import { recordTopic } from "../../lib/confidence";
 import { getStudent } from "../../lib/day";
 import { guard, HttpError, idParam, parseBody } from "../../lib/http";
 
@@ -71,6 +72,7 @@ export const createFlashcard = registerApiRoute("/topics/:topicId/flashcards", {
           explanation: "",
         })
         .returning();
+      await recordTopic(tx, student, topicId, nowFor(student.clockOffsetMs)); // a new card has recall 0, so the topic's score drops
       return { card, question };
     });
     return c.json(
@@ -127,10 +129,15 @@ export const deleteFlashcard = registerApiRoute("/flashcards/:cardId", {
   requiresAuth: false,
   handler: guard(async (c) => {
     const cardId = idParam(c, "cardId");
-    const rows = await getDb().delete(cards)
-      .where(and(eq(cards.id, cardId), isNotNull(cards.topicId)))
-      .returning({ id: cards.id });
-    if (rows.length === 0) throw new HttpError(404, "Flashcard not found");
+    await getDb().transaction(async (tx) => {
+      const [gone] = await tx
+        .delete(cards)
+        .where(and(eq(cards.id, cardId), isNotNull(cards.topicId)))
+        .returning({ topicId: cards.topicId, studentId: cards.studentId });
+      if (!gone) throw new HttpError(404, "Flashcard not found");
+      const student = await getStudent(tx, gone.studentId);
+      await recordTopic(tx, student, gone.topicId!, nowFor(student.clockOffsetMs));
+    });
     return c.body(null, 204);
   }),
 });
