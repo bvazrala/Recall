@@ -3,10 +3,20 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@mastra/core": "1.74.0",
     "@recall/core": "workspace:*",
-    "@recall/db": "workspace:*"
+    "@recall/db": "workspace:*",
+    "zod": "4.6.5"
   },
   "devDependencies": {
-    "tsx": "4.23.15"
+    "mastra": "1.32.1",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3"
+  },
+  "scripts": {
+    "dev": "mastra dev",
+    "build": "mastra build",
+    "start": "mastra start",
+    "check": "tsx src/check.ts"
   }
 }

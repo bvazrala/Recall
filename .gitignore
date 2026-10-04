@@ -8,3 +8,5 @@ node_modules/
 .vercel/
 dist/
 .DS_Store
+next-env.d.ts
+*.tsbuildinfo
