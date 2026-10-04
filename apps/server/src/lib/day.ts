@@ -1,5 +1,5 @@
 import { levelForScore, pickSuggested, SUGGESTED_COUNT } from "@recall/core";
-import { and, asc, eq, sql, studyDays, studyDayTopics, topicConfidenceDays, topics, type Db, type Student, type StudyDayRow } from "@recall/db";
+import { and, asc, eq, inArray, sql, studyDays, studyDayTopics, topicConfidenceDays, topics, type Db, type Student, type StudyDayRow } from "@recall/db";
 import { ensureConfidence } from "./confidence";
 import { HttpError } from "./http";
 
@@ -8,6 +8,21 @@ export type DbOrTx = Db | Parameters<Parameters<Db["transaction"]>[0]>[0];
 
 export async function getStudent(db: DbOrTx, studentId: string): Promise<Student> {
   const student = await db.query.students.findFirst({ where: (s, { eq }) => eq(s.id, studentId) });
+  if (!student) throw new HttpError(404, "Student not found");
+  return student;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// :studentId is either the student's uuid or their phone number (Photon only knows the phone).
+// Phones match with or without the leading "+": 12484955983, +12484955983 and %2B12484955983 all work.
+export async function resolveStudent(db: DbOrTx, raw: string | undefined): Promise<Student> {
+  const value = decodeURIComponent(raw ?? "").trim();
+  if (UUID.test(value)) return getStudent(db, value);
+
+  const digits = value.replace(/\D/g, "");
+  if (digits.length < 10) throw new HttpError(400, "studentId must be a uuid or a phone number");
+  const student = await db.query.students.findFirst({ where: (s) => inArray(s.phone, [`+${digits}`, digits]) });
   if (!student) throw new HttpError(404, "Student not found");
   return student;
 }

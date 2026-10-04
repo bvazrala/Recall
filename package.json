@@ -11,9 +11,15 @@
     "db:generate": "pnpm --filter @recall/db generate",
     "db:migrate": "pnpm --filter @recall/db migrate",
     "db:check": "pnpm --filter @recall/db check",
-    "claude:check": "pnpm --filter @recall/server claude:check"
+    "claude:check": "pnpm --filter @recall/server claude:check",
+    "seed:fresh": "pnpm --filter @recall/db seed:fresh",
+    "seed:mid": "pnpm --filter @recall/db seed:mid"
   },
   "devDependencies": {
     "typescript": "6.0.3"
+  },
+  "dependencies": {
+    "@neon/config": "^1.8.3",
+    "@neon/env": "^1.5.0"
   }
 }

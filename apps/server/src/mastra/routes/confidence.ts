@@ -4,8 +4,8 @@ import { and, eq, gte, lte, topicConfidenceDays, topics } from "@recall/db";
 import { z } from "zod";
 import { getDb } from "../../db";
 import { ensureConfidence } from "../../lib/confidence";
-import { getStudent } from "../../lib/day";
-import { guard, HttpError, idParam } from "../../lib/http";
+import { resolveStudent } from "../../lib/day";
+import { guard, HttpError } from "../../lib/http";
 
 const DEFAULT_DAYS = 30;
 
@@ -21,7 +21,7 @@ export const getConfidenceGrid = registerApiRoute("/students/:studentId/confiden
   requiresAuth: false,
   handler: guard(async (c) => {
     const db = getDb();
-    const student = await getStudent(db, idParam(c, "studentId"));
+    const student = await resolveStudent(db, c.req.param("studentId"));
     const parsed = gridQuery.safeParse(Object.fromEntries(new URL(c.req.url).searchParams));
     if (!parsed.success) throw new HttpError(400, "days must be 1-365 and includeArchived true or false");
     const { days, includeArchived } = parsed.data;

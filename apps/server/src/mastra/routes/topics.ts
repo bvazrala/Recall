@@ -3,7 +3,7 @@ import { createTopicBody, levelForScore, nowFor, updateTopicBody } from "@recall
 import { and, cards, count, eq, getTableColumns, topics } from "@recall/db";
 import { getDb } from "../../db";
 import { ensureConfidence, latestConfidence, recordTopic } from "../../lib/confidence";
-import { getStudent } from "../../lib/day";
+import { resolveStudent } from "../../lib/day";
 import { guard, HttpError, idParam, isUniqueViolation, parseBody } from "../../lib/http";
 
 const conflict = () => new HttpError(409, "A topic with that name already exists");
@@ -13,8 +13,8 @@ export const listTopics = registerApiRoute("/students/:studentId/topics", {
   requiresAuth: false,
   handler: guard(async (c) => {
     const db = getDb();
-    const studentId = idParam(c, "studentId");
-    const student = await getStudent(db, studentId);
+    const student = await resolveStudent(db, c.req.param("studentId"));
+    const studentId = student.id;
     const scores = await ensureConfidence(db, student, nowFor(student.clockOffsetMs));
     const includeArchived = c.req.query("includeArchived") === "true";
 
@@ -40,9 +40,9 @@ export const createTopic = registerApiRoute("/students/:studentId/topics", {
   requiresAuth: false,
   handler: guard(async (c) => {
     const db = getDb();
-    const studentId = idParam(c, "studentId");
     const body = await parseBody(c, createTopicBody);
-    const student = await getStudent(db, studentId);
+    const student = await resolveStudent(db, c.req.param("studentId"));
+    const studentId = student.id;
 
     const created = await db.transaction(async (tx) => {
       const [topic] = await tx.insert(topics).values({ studentId, ...body }).onConflictDoNothing().returning();

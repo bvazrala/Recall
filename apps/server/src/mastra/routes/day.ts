@@ -12,7 +12,7 @@ import {
 import { and, asc, cards, eq, questions, reviews, students, studyDays, studyDayTopics, topics } from "@recall/db";
 import { getDb } from "../../db";
 import { ensureConfidence, latestConfidence, recordTopic, setTodayScore } from "../../lib/confidence";
-import { dayTopics, findCurrentDay, getStudent, openCurrentDay } from "../../lib/day";
+import { dayTopics, findCurrentDay, getStudent, openCurrentDay, resolveStudent } from "../../lib/day";
 import { guard, HttpError, idParam, idQuery, parseBody } from "../../lib/http";
 
 // Today's day for the student; the first call of a day picks and freezes the 5 suggested topics.
@@ -21,7 +21,7 @@ export const getDay = registerApiRoute("/students/:studentId/day", {
   requiresAuth: false,
   handler: guard(async (c) => {
     const db = getDb();
-    const student = await getStudent(db, idParam(c, "studentId"));
+    const student = await resolveStudent(db, c.req.param("studentId"));
     const now = nowFor(student.clockOffsetMs);
     await ensureConfidence(db, student, now);
     const day = await openCurrentDay(db, student, now);
@@ -38,7 +38,7 @@ export const getDayFlashcards = registerApiRoute("/students/:studentId/day/flash
   requiresAuth: false,
   handler: guard(async (c) => {
     const db = getDb();
-    const student = await getStudent(db, idParam(c, "studentId"));
+    const student = await resolveStudent(db, c.req.param("studentId"));
     const topicId = idQuery(c, "topicId");
     const day = await findCurrentDay(db, student);
     if (!day) throw new HttpError(409, "No open day. GET /students/:studentId/day to start one.");
@@ -124,8 +124,8 @@ export const closeDay = registerApiRoute("/students/:studentId/day/close", {
   requiresAuth: false,
   handler: guard(async (c) => {
     const db = getDb();
-    const studentId = idParam(c, "studentId");
     const { overrides, dayNumber } = await parseBody(c, closeDayBody);
+    const studentId = (await resolveStudent(db, c.req.param("studentId"))).id;
 
     const result = await db.transaction(async (tx) => {
       // Locking the student row makes a double close wait, then fail with 409.

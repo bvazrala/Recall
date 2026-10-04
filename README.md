@@ -37,6 +37,8 @@ Open http://localhost:3000 for the landing page, or http://localhost:3000/home f
 
 **Pick a student for the web app.** There is no sign-in yet, so the web app acts as a single student chosen by `NEXT_PUBLIC_STUDENT_ID` in `apps/web/.env.local`. It must be a real `students.id` **UUID** (the server returns `400` for anything else, e.g. `1`). Find one with `select id from students;`. A student with no topics sees the empty Home state; add topics and flashcards through the API (see below) to see the full dashboard. Restart the web dev server after changing the variable, since `NEXT_PUBLIC_` values are read at startup.
 
+**Demo data.** `pnpm seed:mid` (Maya two weeks into MCAT prep) or `pnpm seed:fresh` (Maya on day one, all red) replaces a demo student with the fixed id `6d0a9c52-1f3e-4b7a-8c2d-5e4f3a2b1c01`. Set `NEXT_PUBLIC_STUDENT_ID` to that id and both commands drive the same dashboard. Add `-- --dry-run` to preview without touching the database.
+
 Mastra's Studio (a dev UI for agents) is served at http://localhost:4111.
 
 ### Database

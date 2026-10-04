@@ -6,7 +6,9 @@
   "scripts": {
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate",
-    "check": "tsx scripts/check.ts"
+    "check": "tsx scripts/check.ts",
+    "seed:fresh": "tsx scripts/seed-maya-fresh.ts",
+    "seed:mid": "tsx scripts/seed-maya-midstudy.ts"
   },
   "dependencies": {
     "drizzle-orm": "0.45.3",
