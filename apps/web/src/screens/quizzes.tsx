@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import Link from "next/link";
 import { ChevronDown, X } from "lucide-react";
 import { AppBar, Bar, Button, Card, Chip, Dialog, Folder, FolderPanel, H2, IconBtn, Mark, MarkOver, Page, Segmented, StickyBottom, Title } from "@/components/ui";
 import { LoadError, Loading } from "@/components/load-state";
 import { api, forStudent, useLoad } from "@/lib/api";
 import { joinNames } from "@/lib/day-data";
 import { ICON, cx, useNav } from "@/lib/nav";
-import { PAST_QUIZZES, QUIZ_REVIEW } from "@/lib/mock";
+import { PAST_QUIZZES, QUIZ_REVIEWS } from "@/lib/mock";
 import type { DayResponse, Quiz, QuizAnswer } from "@/lib/types";
 
 // Today's quiz is real: Claude writes it from today's flashcards (apps/server/src/lib/quiz.ts) and the
@@ -65,15 +66,15 @@ export function Quizzes() {
             <Card className="mt-3">
               <ul className="divide-y divide-line">
                 {PAST_QUIZZES.map((p) => (
-                  <li key={p.date}>
-                    <button onClick={() => go("past-quiz")} className="block w-full px-3.5 py-3 text-left">
+                  <li key={p.id}>
+                    <Link href={`/quizzes/review?quiz=${p.id}`} className="block w-full px-3.5 py-3 text-left">
                       <span className="flex items-baseline gap-3">
                         <span className="flex-1 font-bold">{p.topic}</span>
                         <span className="font-hand text-[19px] leading-none text-pen">{p.s}/10</span>
                       </span>
                       <span className="block text-[15px] text-ink-muted">{p.date}</span>
                       <Bar value={p.s * 10} className="mt-2" />
-                    </button>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -260,23 +261,29 @@ export function Results() {
   );
 }
 
-export function PastQuiz() {
+export function PastQuiz({ quizId }: { quizId: string }) {
+  const quiz = PAST_QUIZZES.find((q) => q.id === quizId);
+  const review = QUIZ_REVIEWS[quizId] ?? [];
+  const total = review.length;
+  const score = review.filter((r) => r.ok).length;
+  const missed = total - score;
   const [f, setF] = useState<"all" | "missed">("all");
-  const [open, setOpen] = useState<Set<number>>(new Set([2]));
-  const list = QUIZ_REVIEW.map((r, i) => ({ ...r, i })).filter((r) => f === "all" || !r.ok);
+  const [open, setOpen] = useState<Set<number>>(new Set(review.flatMap((r, i) => r.ok ? [] : [i])));
+  const list = review.map((r, i) => ({ ...r, i })).filter((r) => f === "all" || !r.ok);
+  if (!quiz) return <><AppBar back="quizzes" title="Review" /><Page sheet={640}><p>Quiz not found. Choose a quiz from the past quizzes list.</p></Page></>;
   return (
     <>
       <AppBar back="quizzes" title="Review" />
       <Page sheet={640}>
         <div className="flex items-end justify-between gap-4 pt-1.5 lg:pt-0">
           <div>
-            <p className="font-hand text-[18px] leading-[1.3] text-ink-muted">Sat, Oct 3</p>
-            <Title size="form">Cell membranes</Title>
+            <p className="font-hand text-[18px] leading-[1.3] text-ink-muted">{quiz.date}</p>
+            <Title size="form">{quiz.topic}</Title>
           </div>
-          <p className="shrink-0 font-hand text-[38px] leading-[1.1] text-pen" aria-label="9 out of 10">9/10</p>
+          <p className="shrink-0 font-hand text-[38px] leading-[1.1] text-pen" aria-label={`${score} out of ${total}`}>{score}/{total}</p>
         </div>
         <div className="mt-6">
-          <Segmented value={f} onChange={setF} options={[{ id: "all", label: "All 10" }, { id: "missed", label: "Missed 1" }]} />
+          <Segmented value={f} onChange={setF} options={[{ id: "all", label: `All ${total}` }, { id: "missed", label: `Missed ${missed}` }]} />
           <FolderPanel>
             <ul className="flex flex-col gap-3">
               {list.map((r) => {
