@@ -1,10 +1,11 @@
 import { registerApiRoute } from "@mastra/core/server";
 import { answerQuizBody } from "@recall/core";
-import { and, cards, eq, questions, quizSessions, reviews } from "@recall/db";
+import { and, cards, eq, messages, questions, quizSessions, reviews, students } from "@recall/db";
 import { getDb } from "../../db";
 import { resolveStudent } from "../../lib/day";
 import { guard, HttpError, idParam, parseBody } from "../../lib/http";
-import { getOrCreateTodaysQuiz, findTodaysQuiz, quizView } from "../../lib/quiz";
+import { formatReview, getOrCreateTodaysQuiz, findTodaysQuiz, quizView } from "../../lib/quiz";
+import { sendText } from "../../lib/notify";
 import { applyReview } from "../../lib/review";
 
 // Today's quiz, or { quiz: null } if it hasn't been written yet. Never calls the model.
@@ -65,10 +66,28 @@ export const answerQuiz = registerApiRoute("/quizzes/:quizId/answers", {
       const answered = (await tx.select({ id: reviews.id }).from(reviews).where(eq(reviews.sessionId, quizId))).length;
       const done = answered >= quiz.queue.length;
       if (done) await tx.update(quizSessions).set({ status: "done" }).where(eq(quizSessions.id, quizId));
-      return { correct, correctChoice: key, explanation: question.explanation, topic: review.topic, done };
+      return { correct, correctChoice: key, explanation: question.explanation, topic: review.topic, done, studentId: quiz.studentId };
     });
-    return c.json(result);
+
+    const { studentId, ...body } = result;
+    if (result.done) await sendReview(studentId, quizId);
+    return c.json(body);
   }),
 });
+
+// Texts the finished quiz's review and logs it, so the student's follow-up questions have it in the thread.
+async function sendReview(studentId: string, quizId: string) {
+  const db = getDb();
+  try {
+    const student = await db.query.students.findFirst({ where: eq(students.id, studentId) });
+    const quiz = await db.query.quizSessions.findFirst({ where: eq(quizSessions.id, quizId) });
+    if (!student?.phone || !quiz) return;
+    const text = formatReview(await quizView(db, quiz));
+    await db.insert(messages).values({ studentId, direction: "out", kind: "text", body: text });
+    void sendText(student.phone, text); // don't hold up the web response on iMessage
+  } catch (e) {
+    console.error("Couldn't send the quiz review", e);
+  }
+}
 
 export const quizRoutes = [getQuiz, startQuiz, answerQuiz];
