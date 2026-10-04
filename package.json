@@ -6,7 +6,8 @@
     "node": ">=22.13"
   },
   "scripts": {
-    "typecheck": "pnpm -r exec tsc -p ."
+    "typecheck": "pnpm -r exec tsc -p .",
+    "test": "pnpm -r --if-present run test"
   },
   "devDependencies": {
     "typescript": "6.0.3"
