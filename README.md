@@ -1,6 +1,6 @@
 # Recall
 
-[![Watch the video](http://markdown-videos-api.jorgenkh.no/youtube/watch?v=tEUPecqYs4c)](https://youtu.be/watch?v=tEUPecqYs4c)
+[![Watch the video](https://img.youtube.com/vi/watch?v=tEUPecqYs4c/maxresdefault.jpg)](https://youtu.be/watch?v=tEUPecqYs4c)   
 
 Spaced repetition that enhances study methods through text messages. A student gets about one text a day with a review question, replies with an answer, and Recall grades it and schedules the next review using the [FSRS](https://github.com/open-spaced-repetition/ts-fsrs) algorithm.
 
