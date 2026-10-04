@@ -2,7 +2,6 @@ import { cardFromRow, levelForScore, nowFor, ratingToGrade, reviewCard, type Fsr
 import { and, cards, eq, reviews, studyDayTopics, topics, type CardRow } from "@recall/db";
 import { latestConfidence, recordTopic } from "./confidence";
 import { findCurrentDay, getStudent, type DbOrTx } from "./day";
-import { HttpError } from "./http";
 
 export interface ReviewInput {
   card: CardRow & { topicId: string };
@@ -18,13 +17,13 @@ export async function applyReview(tx: DbOrTx, { card, questionId, rating, respon
   const student = await getStudent(tx, card.studentId);
   const now = nowFor(student.clockOffsetMs);
 
+  // Students may study any topic. The review is tied to the open day only when the topic is one of its assigned topics.
   const day = await findCurrentDay(tx, student);
   const inDay =
     day?.status === "open" &&
     (await tx.query.studyDayTopics.findFirst({
       where: and(eq(studyDayTopics.studyDayId, day.id), eq(studyDayTopics.topicId, card.topicId)),
     }));
-  if (!day || !inDay) throw new HttpError(409, "This flashcard's topic is not part of the open day");
 
   // Lock the topic so two quick reviews don't compute its score from a stale set of cards.
   const [topic] = await tx.select().from(topics).where(eq(topics.id, card.topicId)).for("update");
@@ -39,7 +38,7 @@ export async function applyReview(tx: DbOrTx, { card, questionId, rating, respon
     cardId: card.id,
     questionId,
     sessionId,
-    studyDayId: day.id,
+    studyDayId: inDay && day ? day.id : null,
     response,
     grade,
     confidence,
