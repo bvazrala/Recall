@@ -22,6 +22,12 @@
   --color-class-green: #2b7a4b;
   --color-class-purple: #6a4aa0;
   --color-class-orange: #a85a16;
+  /* The five confidence levels, weakest to strongest. A rating scale, not a mistake, so red here is not redpen. */
+  --color-level-red: #c9302c;
+  --color-level-orange: #f08a24;
+  --color-level-yellow: #ffd83d;
+  --color-level-green: #2b7a4b;
+  --color-level-star: #23272e;
   --color-bubble-blue: #0b84fe;  /* only for iMessage previews */
   --color-bubble-gray: #e9e9eb;
 }
@@ -138,12 +144,17 @@
 @keyframes slideout {
   to { transform: translateX(-120%) rotate(-4deg); opacity: 0; }
 }
+@keyframes slidein {
+  from { opacity: 0; transform: translateX(48px); }
+  to { opacity: 1; transform: none; }
+}
 @keyframes fadein {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }
 }
 .anim-indet { animation: indet 1.4s ease-in-out infinite; }
 .anim-slideout { animation: slideout 200ms ease-out forwards; }
+.anim-slidein { animation: slidein 240ms ease-out both; }
 .anim-in { animation: fadein 220ms ease-out both; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
