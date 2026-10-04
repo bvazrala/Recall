@@ -31,7 +31,7 @@ export function useLoad<T>(load: () => Promise<T>) {
   const [state, setState] = useState<State<T>>({ loading: true });
   const run = useCallback(() => {
     let live = true;
-    load().then(
+    Promise.resolve().then(load).then(
       (data) => live && setState({ data, loading: false }),
       (error: Error) => live && setState((s) => ({ ...s, error, loading: false })),
     );
