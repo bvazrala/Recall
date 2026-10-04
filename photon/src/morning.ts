@@ -22,6 +22,11 @@ export interface NextDay {
 // Thrown when another request closed this day first (two "next day" texts at once).
 export class AlreadyAdvancedError extends Error {}
 
+// Thrown when the server has no student with this phone number.
+export class NotRegisteredError extends Error {}
+
+export const NOT_REGISTERED_TEXT = "This number isn't linked to a Recall student yet.";
+
 const LEVEL_EMOJI: Record<Level, string> = { red: "🔴", yellow: "🟡", green: "🟢", star: "⭐" };
 
 export function isNextDayRequest(text: string): boolean {
@@ -34,6 +39,7 @@ const studentPath = (handle: string) => `${API_URL}/students/${handle.replace(/\
 // Opens today if needed, then closes it. The server opens the next day and returns its topics.
 export async function startNextDay(handle: string): Promise<NextDay> {
   const dayRes = await fetch(`${studentPath(handle)}/day`);
+  if (dayRes.status === 404) throw new NotRegisteredError(handle);
   if (!dayRes.ok) throw new Error(`GET day failed: ${dayRes.status} ${await dayRes.text()}`);
   const { day } = (await dayRes.json()) as { day: { number: number } };
 
