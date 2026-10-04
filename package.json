@@ -10,7 +10,8 @@
     "test": "pnpm -r --if-present run test",
     "db:generate": "pnpm --filter @recall/db generate",
     "db:migrate": "pnpm --filter @recall/db migrate",
-    "db:check": "pnpm --filter @recall/db check"
+    "db:check": "pnpm --filter @recall/db check",
+    "claude:check": "pnpm --filter @recall/server claude:check"
   },
   "devDependencies": {
     "typescript": "6.0.3"
