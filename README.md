@@ -1,5 +1,7 @@
 # Recall
 
+[![Watch the video](https://img.youtube.com/vi/watch?v=tEUPecqYs4c/maxresdefault.jpg)](https://youtu.be/watch?v=tEUPecqYs4c)   
+
 Spaced repetition that enhances study methods through text messages. A student gets about one text a day with a review question, replies with an answer, and Recall grades it and schedules the next review using the [FSRS](https://github.com/open-spaced-repetition/ts-fsrs) algorithm.
 
 > **Status:** early scaffold. Scheduling logic, the study-day API and the web app's Home, Flashcards and Study screens work against the real server. The rest of the web UI (classes, quizzes, uploads, settings, auth) is built to the design but runs on placeholder data. Grading, inbound message handling, the agent and Photon integration are not built yet.
