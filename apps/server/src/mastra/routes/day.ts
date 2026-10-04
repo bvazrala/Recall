@@ -1,19 +1,11 @@
 import { registerApiRoute } from "@mastra/core/server";
-import {
-  cardFromRow,
-  closeDayBody,
-  levelForScore,
-  nowFor,
-  ratingToGrade,
-  reviewCard,
-  reviewFlashcardBody,
-  scoreForLevel,
-} from "@recall/core";
-import { and, asc, cards, eq, questions, reviews, students, studyDays, studyDayTopics, topics } from "@recall/db";
+import { closeDayBody, nowFor, reviewFlashcardBody, scoreForLevel } from "@recall/core";
+import { and, asc, cards, eq, questions, students, studyDays, studyDayTopics, topics } from "@recall/db";
 import { getDb } from "../../db";
-import { ensureConfidence, latestConfidence, recordTopic, setTodayScore } from "../../lib/confidence";
-import { dayTopics, findCurrentDay, getStudent, openCurrentDay, resolveStudent } from "../../lib/day";
+import { ensureConfidence, setTodayScore } from "../../lib/confidence";
+import { dayTopics, findCurrentDay, openCurrentDay, resolveStudent } from "../../lib/day";
 import { guard, HttpError, idParam, idQuery, parseBody } from "../../lib/http";
+import { applyReview } from "../../lib/review";
 
 // Today's day for the student; the first call of a day picks and freezes the 5 suggested topics.
 export const getDay = registerApiRoute("/students/:studentId/day", {
@@ -51,7 +43,7 @@ export const getDayFlashcards = registerApiRoute("/students/:studentId/day/flash
     const rows = await db
       .select({ id: cards.id, question: questions.prompt, answer: questions.answer, due: cards.due, state: cards.state, reps: cards.reps, lapses: cards.lapses })
       .from(cards)
-      .innerJoin(questions, eq(questions.cardId, cards.id))
+      .innerJoin(questions, and(eq(questions.cardId, cards.id), eq(questions.format, "flashcard")))
       .where(and(eq(cards.topicId, topicId), eq(cards.suspended, false)))
       .orderBy(asc(cards.due), asc(cards.createdAt));
     return c.json({ flashcards: rows.map((r) => ({ ...r, answer: (r.answer as { text: string }).text })) });
@@ -70,49 +62,9 @@ export const reviewFlashcard = registerApiRoute("/flashcards/:cardId/review", {
     const result = await db.transaction(async (tx) => {
       const card = await tx.query.cards.findFirst({ where: eq(cards.id, cardId) });
       if (!card?.topicId) throw new HttpError(404, "Flashcard not found");
-      const question = await tx.query.questions.findFirst({ where: eq(questions.cardId, cardId) });
+      const question = await tx.query.questions.findFirst({ where: and(eq(questions.cardId, cardId), eq(questions.format, "flashcard")) });
       if (!question) throw new HttpError(404, "Flashcard not found");
-      const student = await getStudent(tx, card.studentId);
-      const now = nowFor(student.clockOffsetMs);
-
-      const day = await findCurrentDay(tx, student);
-      const inDay =
-        day?.status === "open" &&
-        (await tx.query.studyDayTopics.findFirst({
-          where: and(eq(studyDayTopics.studyDayId, day.id), eq(studyDayTopics.topicId, card.topicId)),
-        }));
-      if (!day || !inDay) throw new HttpError(409, "This flashcard's topic is not part of the open day");
-
-      // Lock the topic so two quick reviews don't compute its score from a stale set of cards.
-      const [topic] = await tx.select().from(topics).where(eq(topics.id, card.topicId)).for("update");
-      const before = await latestConfidence(tx, topic.id);
-
-      const { card: next, log } = reviewCard(cardFromRow(card), rating, now);
-      await tx.update(cards).set(next).where(eq(cards.id, cardId));
-
-      const { grade, confidence } = ratingToGrade(rating);
-      await tx.insert(reviews).values({
-        studentId: student.id,
-        cardId,
-        questionId: question.id,
-        studyDayId: day.id,
-        response: "",
-        grade,
-        confidence,
-        rating,
-        gradedBy: "code",
-        fsrsLog: log,
-        reviewedAt: now,
-      });
-
-      await tx.update(topics).set({ lastStudiedAt: now }).where(eq(topics.id, topic.id));
-      const score = await recordTopic(tx, student, topic.id, now);
-      const level = levelForScore(score);
-
-      return {
-        card: { id: cardId, due: next.due, state: next.state, reps: next.reps, lapses: next.lapses },
-        topic: { id: topic.id, previousLevel: before.confidenceLevel, score, level },
-      };
+      return applyReview(tx, { card: { ...card, topicId: card.topicId }, questionId: question.id, rating });
     });
     return c.json(result);
   }),

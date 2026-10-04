@@ -5,7 +5,7 @@ export type Ctx = ContextWithMastra;
 
 export class HttpError extends Error {
   constructor(
-    public status: 400 | 404 | 409,
+    public status: 400 | 404 | 409 | 502,
     message: string,
   ) {
     super(message);

@@ -30,6 +30,12 @@ export const reviewFlashcardBody = z.object({
   rating: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
 });
 
+// One quiz answer: the index of the chosen option (0-3 = A-D).
+export const answerQuizBody = z.object({
+  questionId: z.uuid(),
+  choice: z.number().int().min(0).max(3),
+});
+
 export const closeDayBody = z.object({
   // The day the client believes it is closing. A repeated or stale request gets a 409 instead of closing the next day.
   dayNumber: z.number().int().positive().optional(),
@@ -45,3 +51,4 @@ export type CreateFlashcardBody = z.infer<typeof createFlashcardBody>;
 export type UpdateFlashcardBody = z.infer<typeof updateFlashcardBody>;
 export type ReviewFlashcardBody = z.infer<typeof reviewFlashcardBody>;
 export type CloseDayBody = z.infer<typeof closeDayBody>;
+export type AnswerQuizBody = z.infer<typeof answerQuizBody>;

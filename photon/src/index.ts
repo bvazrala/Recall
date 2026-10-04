@@ -1,6 +1,6 @@
 import { Spectrum } from "spectrum-ts";
 import { imessage } from "@spectrum-ts/imessage";
-import { appCard, isAppRequest } from "./app-card.ts";
+import { appCard, isAppRequest, NO_QUIZ_URL_TEXT, quizUrl } from "./app-card.ts";
 import { AlreadyAdvancedError, formatMorning, isNextDayRequest, startNextDay } from "./morning.ts";
 
 // Spectrum bridges a single agent loop to many messaging interfaces.
@@ -23,7 +23,8 @@ const handledNextDay = new Set<string>();
 for await (const [space, message] of app.messages) {
  if (message.content.type === "text") {
   if (isAppRequest(message.content.text)) {
-    await space.send(appCard());
+    const url = await quizUrl();
+    await space.send(url ? appCard(url) : NO_QUIZ_URL_TEXT);
   } else if (isNextDayRequest(message.content.text) && message.sender) {
     if (handledNextDay.has(message.id)) continue;
     handledNextDay.add(message.id);
@@ -31,7 +32,8 @@ for await (const [space, message] of app.messages) {
     try {
       const day = await startNextDay(message.sender.id);
       await space.send(formatMorning(day));
-      await space.send(appCard());
+      const url = await quizUrl();
+      if (url) await space.send(appCard(url));
     } catch (err) {
       if (err instanceof AlreadyAdvancedError) continue; // two requests raced; the other one already moved the day
       console.error(err);

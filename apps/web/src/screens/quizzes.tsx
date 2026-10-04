@@ -1,20 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ChevronDown, X } from "lucide-react";
 import { AppBar, Bar, Button, Card, Chip, Dialog, Folder, FolderPanel, H2, IconBtn, Mark, MarkOver, Page, Segmented, StickyBottom, Title } from "@/components/ui";
+import { LoadError, Loading } from "@/components/load-state";
+import { api, forStudent, useLoad } from "@/lib/api";
+import { joinNames } from "@/lib/day-data";
 import { ICON, cx, useNav } from "@/lib/nav";
-import { PAST_QUIZZES, QUESTION as Q, QUIZ_REVIEW } from "@/lib/mock";
+import { PAST_QUIZZES, QUIZ_REVIEW } from "@/lib/mock";
+import type { DayResponse, Quiz, QuizAnswer } from "@/lib/types";
 
-// Quizzes have no server routes yet, so every screen here runs on placeholder data (see lib/mock.ts).
+// Today's quiz is real: Claude writes it from today's flashcards (apps/server/src/lib/quiz.ts) and the
+// server grades it. Past quizzes and the review screen still run on placeholder data (see lib/mock.ts).
 
 // The printed sheet a quiz is written on: an index card without the red line.
 const SHEET = "rounded-[3px] bg-surface shadow-[0_1px_0_var(--color-line),0_10px_20px_-14px_rgba(30,63,150,0.55)]";
 // A letter or number in the left column of a sheet, with room for a mark drawn over it.
 const SLOT = "relative w-7 shrink-0 text-center font-bold";
 
+// Reads today's quiz without writing one; the day's topics stand in until it exists.
+async function loadToday() {
+  const [{ quiz }, { topics }] = await Promise.all([
+    api<{ quiz: Quiz | null }>(forStudent("/quiz")),
+    api<DayResponse>(forStudent("/day")),
+  ]);
+  return { quiz, topics: quiz?.topics ?? topics.map((t) => t.name) };
+}
+
+const startQuiz = () => api<{ quiz: Quiz }>(forStudent("/quiz"), { method: "POST" }).then((r) => r.quiz);
+const loadQuiz = () => api<{ quiz: Quiz | null }>(forStudent("/quiz")).then((r) => r.quiz);
+
 export function Quizzes() {
   const { go } = useNav();
+  const { data, error, loading } = useLoad(loadToday);
+  const quiz = data?.quiz;
+  const total = quiz?.questions.length ?? 10;
+  const done = !!quiz && quiz.answeredCount >= total;
+  const status = !quiz || quiz.answeredCount === 0
+    ? "Not started yet"
+    : done ? `Done: ${quiz.correctCount} of ${total} right` : `${quiz.answeredCount} of ${total} answered`;
   return (
     <>
       <AppBar />
@@ -22,11 +46,19 @@ export function Quizzes() {
         <Title className="pt-3.5 lg:pt-0">Quizzes</Title>
         <div className="lg:mt-10 lg:flex lg:flex-wrap lg:items-start lg:gap-x-14 lg:gap-y-12">
           <Folder tab="Today's quiz" className="mt-[21px] min-w-0 lg:mt-0 lg:flex-[2_1_480px]">
-            <h2 className="font-hand text-[24px] leading-[1.25] text-pen lg:text-[35px] lg:leading-[1.2]">Glycolysis and the Krebs cycle</h2>
-            <p className="mt-2 lg:mt-2.5 lg:text-[18px]">10 questions, about 6 minutes.</p>
-            <div className="mt-3.5 flex flex-wrap gap-2 lg:mt-4 lg:gap-2.5"><Chip>Glycolysis</Chip><Chip>Krebs cycle</Chip></div>
-            <div className="mt-5 flex items-center gap-3"><Bar value={0} className="flex-1" /><span className="text-[15px] text-folder-text">Not started yet</span></div>
-            <Button full className="mt-[30px] lg:mt-8 lg:w-auto lg:min-w-[260px] lg:px-8" onClick={() => go("question")}>Start quiz</Button>
+            {error ? <LoadError error={error} /> : loading || !data ? <Loading /> : data.topics.length === 0 ? (
+              <p className="lg:text-[18px]">No topics today, so there&apos;s nothing to quiz on yet.</p>
+            ) : (
+              <>
+                <h2 className="font-hand text-[24px] leading-[1.25] text-pen lg:text-[35px] lg:leading-[1.2]">{joinNames(data.topics)}</h2>
+                <p className="mt-2 lg:mt-2.5 lg:text-[18px]">{total} questions, about {Math.max(1, Math.round((total * 35) / 60))} minutes.</p>
+                <div className="mt-3.5 flex flex-wrap gap-2 lg:mt-4 lg:gap-2.5">{data.topics.map((t) => <Chip key={t}>{t}</Chip>)}</div>
+                <div className="mt-5 flex items-center gap-3"><Bar value={quiz ? (quiz.answeredCount / total) * 100 : 0} className="flex-1" /><span className="text-[15px] text-folder-text">{status}</span></div>
+                <Button full className="mt-[30px] lg:mt-8 lg:w-auto lg:min-w-[260px] lg:px-8" onClick={() => go(done ? "results" : "question")}>
+                  {done ? "See results" : quiz && quiz.answeredCount > 0 ? "Resume quiz" : "Start quiz"}
+                </Button>
+              </>
+            )}
           </Folder>
           <aside className="mt-10 min-w-0 lg:mt-2 lg:flex-[1_1_300px]">
             <H2>Past quizzes</H2>
@@ -57,37 +89,92 @@ export function Quizzes() {
 const TILT = ["-rotate-[5deg]", "rotate-[4deg]", "-rotate-[3deg]", "rotate-[5deg]"];
 
 export function Question() {
+  const { data: quiz, error, loading, reload } = useLoad(startQuiz);
+  if (error) return <div className="paper page-x min-h-screen pt-[100px]"><LoadError error={error} /></div>;
+  if (loading || !quiz) {
+    return (
+      <div className="paper page-x min-h-screen pt-[100px]">
+        <p className="font-hand text-[24px] text-pen">Writing today&apos;s quiz…</p>
+        <p className="mt-1 text-ink-muted">The first time each day this takes about 20 seconds.</p>
+        <Loading className="mt-6 h-[360px]" />
+      </div>
+    );
+  }
+  return <Sheet key={quiz.id} quiz={quiz} reload={reload} />;
+}
+
+function Sheet({ quiz, reload }: { quiz: Quiz; reload: () => void }) {
   const { go } = useNav();
+  const total = quiz.questions.length;
+  // Start at the first unanswered question, so leaving and coming back resumes.
+  const [i, setI] = useState(() => Math.min(quiz.answeredCount, Math.max(total - 1, 0)));
   const [sel, setSel] = useState<number | null>(null);
-  const [checked, setChecked] = useState(false);
+  const [answer, setAnswer] = useState<QuizAnswer | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState<string>();
   const [confirm, setConfirm] = useState(false);
-  const right = sel === Q.correct;
+
+  const q = quiz.questions[i];
+  const check = useCallback(async () => {
+    if (sel === null || busy || !q) return;
+    setBusy(true);
+    setFailed(undefined);
+    try {
+      setAnswer(await api<QuizAnswer>(`/quizzes/${quiz.id}/answers`, { method: "POST", body: JSON.stringify({ questionId: q.id, choice: sel }) }));
+    } catch (e) {
+      // 409: answered already (another tab, a double click). The reloaded quiz resumes after it.
+      if ((e as Error).message.includes("409")) reload();
+      else setFailed((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }, [sel, busy, q, quiz.id, reload]);
+
+  if (total === 0 || quiz.answeredCount >= total) {
+    return (
+      <div className="paper page-x min-h-screen pt-[100px]">
+        <p className="font-hand text-[24px] text-pen">You&apos;ve finished today&apos;s quiz.</p>
+        <Button full className="mt-6" onClick={() => go("results")}>See results</Button>
+      </div>
+    );
+  }
+
+  const checked = answer !== null;
+  const filled = i + (checked ? 1 : 0); // dashes for answered questions
+  const resumeAt = Math.min(filled + 1, total);
+  const next = () => {
+    if (i + 1 >= total) return go("results");
+    setI(i + 1);
+    setSel(null);
+    setAnswer(null);
+  };
   return (
     <div className="paper flex min-h-screen flex-col lg:[--sheet:640px]">
       <header className="paper-band page-x safe-top sticky top-0 z-20">
         <div className="safe-row flex items-center gap-3">
           <IconBtn label="Exit quiz" onClick={() => setConfirm(true)}><X size={24} strokeWidth={2} /></IconBtn>
           <div className="flex min-w-0 flex-1 items-center gap-[5px]" aria-hidden>
-            {Array.from({ length: 10 }, (_, i) => <span key={i} className={cx("h-1 w-[17px] rounded-[2px]", i < 4 ? cx("bg-pen", TILT[i % TILT.length]) : "bg-[#c6d4ea]")} />)}
+            {Array.from({ length: total }, (_, n) => <span key={n} className={cx("h-1 w-[17px] rounded-[2px]", n < filled ? cx("bg-pen", TILT[n % TILT.length]) : "bg-[#c6d4ea]")} />)}
           </div>
-          <p className="shrink-0 font-hand text-[17px] text-ink-muted"><span className="sr-only">Question </span>4 of 10</p>
+          <p className="shrink-0 font-hand text-[17px] text-ink-muted"><span className="sr-only">Question </span>{i + 1} of {total}</p>
         </div>
       </header>
-      <main className="page-x anim-in flex flex-1 flex-col lg:pb-16">
-        <div className={cx("mt-2 px-4 pt-5 pb-1.5", SHEET)}>
-          <h1 className="text-[22px] leading-[1.35] font-bold">{Q.prompt}</h1>
+      <main key={q.id} className="page-x anim-in flex flex-1 flex-col lg:pb-16">
+        <p className="mt-2 font-hand text-[17px] text-ink-muted">{q.topic}</p>
+        <div className={cx("mt-1 px-4 pt-5 pb-1.5", SHEET)}>
+          <h1 className="text-[22px] leading-[1.35] font-bold">{q.prompt}</h1>
           <ol className="mt-3">
-            {Q.options.map((o, i) => {
-              const picked = sel === i;
-              const correct = checked && i === Q.correct;
+            {q.choices.map((o, n) => {
+              const picked = sel === n;
+              const correct = checked && n === answer.correctChoice;
               // Before checking, the student circles a choice. After, the circle marks the right answer
               // and a red X goes through a wrong pick.
               const circled = checked ? correct : picked;
               return (
-                <li key={o} className="border-t border-[#e6ecf5]">
-                  <button onClick={() => setSel(i)} disabled={checked} aria-pressed={checked ? undefined : picked} className="flex min-h-[54px] w-full items-center gap-3.5 text-left">
+                <li key={n} className="border-t border-[#e6ecf5]">
+                  <button onClick={() => setSel(n)} disabled={checked || busy} aria-pressed={checked ? undefined : picked} className="flex min-h-[54px] w-full items-center gap-3.5 text-left">
                     <span className={cx(SLOT, circled ? "text-ink" : "text-ink-muted")}>
-                      {"ABCD"[i]}
+                      {"ABCD"[n]}
                       {circled && <MarkOver kind="circle" size={40} className="text-pen" />}
                       {checked && picked && !correct && <MarkOver kind="cross" size={30} className="text-redpen" />}
                     </span>
@@ -102,17 +189,20 @@ export function Question() {
         </div>
         {checked && (
           <div className="anim-in mt-[22px]">
-            <p className={cx("font-hand text-[25px] leading-[1.15]", right ? "text-pen" : "text-redpen")}>{right ? "Correct." : "Not quite."}</p>
-            <p className="mt-2">{Q.why}</p>
+            <p className={cx("font-hand text-[25px] leading-[1.15]", answer.correct ? "text-pen" : "text-redpen")}>{answer.correct ? "Correct." : "Not quite."}</p>
+            <p className="mt-2">{answer.explanation}</p>
           </div>
         )}
+        {failed && <p className="mt-4 text-redpen">Couldn&apos;t save that answer: {failed}</p>}
         <StickyBottom>
-          {!checked ? <Button full disabled={sel === null} onClick={() => setChecked(true)}>Check answer</Button> : <Button full onClick={() => go("results")}>Next question</Button>}
+          {!checked
+            ? <Button full loading={busy} disabled={sel === null} onClick={check}>Check answer</Button>
+            : <Button full onClick={next}>{i + 1 >= total ? "See results" : "Next question"}</Button>}
         </StickyBottom>
       </main>
       {confirm && (
         <Dialog title="Leave this quiz?" onClose={() => setConfirm(false)}>
-          <p className="mt-2 text-ink-muted">Your answers so far are saved. You can resume from question 4.</p>
+          <p className="mt-2 text-ink-muted">Your answers so far are saved. You can resume from question {resumeAt}.</p>
           <div className="mt-7 grid grid-cols-2 gap-3"><Button variant="secondary" onClick={() => setConfirm(false)}>Keep going</Button><Button onClick={() => go("quizzes")}>Leave</Button></div>
         </Dialog>
       )}
@@ -120,35 +210,49 @@ export function Question() {
   );
 }
 
-const MISSED = [
-  [4, "Which enzyme catalyzes the committed step of glycolysis?"],
-  [7, "How many NADH does glycolysis produce per glucose?"],
-] as const;
-
 // A graded sheet: the score in handwriting, and red pen only on the misses.
 export function Results() {
   const { go } = useNav();
+  const { data: quiz, error, loading } = useLoad(loadQuiz);
+  if (error) return <><AppBar onClose={() => go("quizzes")} title="Results" right={<span className="w-11" />} /><Page sheet={560}><LoadError error={error} /></Page></>;
+  if (loading) return <><AppBar onClose={() => go("quizzes")} title="Results" right={<span className="w-11" />} /><Page sheet={560}><Loading className="h-[360px]" /></Page></>;
+
+  const total = quiz?.questions.length ?? 0;
+  const missed = (quiz?.questions ?? []).map((q, n) => ({ ...q, n: n + 1 })).filter((q) => q.result && !q.result.correct);
+  const missedTopics = [...new Set(missed.map((q) => q.topic))];
+  const summary = !quiz
+    ? "You haven't taken today's quiz yet."
+    : missed.length === 0
+      ? quiz.answeredCount < total ? `No misses so far. ${total - quiz.answeredCount} questions left.` : "You got every question right."
+      : `You missed ${missed.length}, from ${joinNames(missedTopics)}.`;
   return (
     <>
       <AppBar onClose={() => go("quizzes")} title="Results" right={<span className="w-11" />} />
       <Page sheet={560}>
         <div className={cx("mt-2 px-4 pt-5 pb-1.5 lg:mt-0", SHEET)}>
           <div className="flex items-start justify-between gap-4">
-            <h1 className="text-[22px] leading-[1.35] font-bold">Glycolysis and the Krebs cycle</h1>
-            <p className="shrink-0 font-hand text-[52px] leading-[0.9] text-pen" aria-label="8 out of 10">8<span className="text-[30px]">/10</span></p>
+            <h1 className="text-[22px] leading-[1.35] font-bold">{quiz ? joinNames(quiz.topics) : "Today's quiz"}</h1>
+            {quiz && <p className="shrink-0 font-hand text-[52px] leading-[0.9] text-pen" aria-label={`${quiz.correctCount} out of ${total}`}>{quiz.correctCount}<span className="text-[30px]">/{total}</span></p>}
           </div>
-          <p className="mt-3">You missed 2, both from Glycolysis.</p>
+          <p className="mt-3">{summary}</p>
           <ul className="mt-3">
-            {MISSED.map(([n, q]) => (
-              <li key={n} className="flex min-h-[54px] items-center gap-3.5 border-t border-[#e6ecf5] py-2">
-                <span className={cx(SLOT, "text-ink-muted")}><span className="sr-only">Missed question </span>{n}<MarkOver kind="cross" size={30} className="text-redpen" /></span>
-                <span>{q}</span>
+            {missed.map((q) => (
+              <li key={q.id} className="border-t border-[#e6ecf5] py-3">
+                <div className="flex items-start gap-3.5">
+                  <span className={cx(SLOT, "text-ink-muted")}><span className="sr-only">Missed question </span>{q.n}<MarkOver kind="cross" size={30} className="text-redpen" /></span>
+                  <div className="min-w-0 flex-1">
+                    <p>{q.prompt}</p>
+                    {q.result!.chosen >= 0 && <p className="mt-1.5 text-[15px] text-redpen">Your answer: {q.choices[q.result!.chosen]}</p>}
+                    <p className="mt-1 text-[15px] font-bold">Answer: {q.choices[q.result!.correctChoice]}</p>
+                    <p className="mt-1 text-[15px] text-ink-muted">{q.result!.explanation}</p>
+                  </div>
+                </div>
               </li>
             ))}
           </ul>
         </div>
         <div className="mt-8 flex flex-col gap-2">
-          <Button full onClick={() => go("past-quiz")}>Review answers</Button>
+          {quiz && quiz.answeredCount < total && <Button full onClick={() => go("question")}>Resume quiz</Button>}
           <Button variant="text" onClick={() => go("quizzes")}>Back to quizzes</Button>
         </div>
       </Page>
