@@ -1,4 +1,4 @@
-import { bigint, boolean, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { bigint, boolean, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const students = pgTable("students", {
   id: uuid().primaryKey().defaultRandom(),
@@ -12,6 +12,7 @@ export const students = pgTable("students", {
   ageConfirmedAt: timestamp({ withTimezone: true }),
   isDemo: boolean().notNull().default(false),
   clockOffsetMs: bigint({ mode: "number" }).notNull().default(0), // demo fast-forward
+  currentDay: integer().notNull().default(1), // study day number; moves only when a day is closed
   lastInboundAt: timestamp({ withTimezone: true }),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });

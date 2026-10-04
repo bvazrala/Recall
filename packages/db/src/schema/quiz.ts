@@ -1,5 +1,6 @@
 import { index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { cards, questions } from "./cards";
+import { studyDays } from "./study";
 import { students } from "./students";
 
 // A run of questions in the thread. Only one question is waiting for an answer at a time.
@@ -27,6 +28,7 @@ export const reviews = pgTable(
     cardId: uuid().notNull().references(() => cards.id, { onDelete: "cascade" }),
     questionId: uuid().notNull().references(() => questions.id, { onDelete: "cascade" }),
     sessionId: uuid().references(() => quizSessions.id, { onDelete: "set null" }),
+    studyDayId: uuid().references(() => studyDays.id, { onDelete: "set null" }), // set for topic-flow flashcard reviews
     response: text().notNull(), // exactly what the student texted
     grade: text({ enum: ["correct", "partial", "wrong"] }).notNull(),
     confidence: integer().$type<1 | 2 | 3>().notNull(),

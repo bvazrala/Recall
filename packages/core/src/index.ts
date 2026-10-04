@@ -1,5 +1,6 @@
 export * from "./clock";
 export * from "./fsrs";
+export * from "./confidence";
 export * from "./verify";
 export * from "./grade";
 export * from "./inbound";
