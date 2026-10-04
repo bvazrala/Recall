@@ -1,4 +1,4 @@
-import { boolean, index, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, integer, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { students } from "./students";
 
 export const CONFIDENCE_LEVELS = ["red", "yellow", "green", "star"] as const;
@@ -12,16 +12,26 @@ export const topics = pgTable(
     studentId: uuid().notNull().references(() => students.id, { onDelete: "cascade" }),
     name: text().notNull(),
     description: text(),
-    confidenceScore: integer().notNull().default(0), // 0-100; flashcard ratings nudge it
-    confidenceLevel: text({ enum: CONFIDENCE_LEVELS }).notNull().default("red"), // derived from the score, stored for cheap reads
     lastStudiedAt: timestamp({ withTimezone: true }), // student clock
     archived: boolean().notNull().default(false),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [
-    index().on(t.studentId, t.confidenceScore), // fast "lowest confidence first"
-    unique().on(t.studentId, t.name),
-  ],
+  (t) => [unique().on(t.studentId, t.name)],
+);
+
+// A topic's confidence on one student-local calendar date: the stability-weighted recall chance of its cards.
+// The only place confidence is stored. A topic's level is derived from the score in code (levelForScore).
+// Written whenever the topic's cards change, and filled in lazily for days nothing happened (see lib/confidence.ts).
+export const topicConfidenceDays = pgTable(
+  "topic_confidence_days",
+  {
+    topicId: uuid().notNull().references(() => topics.id, { onDelete: "cascade" }),
+    date: date({ mode: "string" }).notNull(), // YYYY-MM-DD in the student's time zone
+    score: integer().notNull(), // 0-100
+    overridden: boolean().notNull().default(false), // student set this by hand; kept until the topic's cards next change
+  },
+  (t) => [primaryKey({ columns: [t.topicId, t.date] })],
 );
 
 export type TopicRow = typeof topics.$inferSelect;
+export type TopicConfidenceDayRow = typeof topicConfidenceDays.$inferSelect;

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Rating } from "../fsrs";
-import { applyRating, levelForScore, scoreForLevel, type ConfidenceLevel } from "./levels";
+import { levelForScore, scoreForLevel, type ConfidenceLevel } from "./levels";
 
 describe("levelForScore", () => {
   it.each([
@@ -28,21 +27,5 @@ describe("scoreForLevel", () => {
   ] as [ConfidenceLevel, number][])("%s maps to %i and back", (level, score) => {
     expect(scoreForLevel(level)).toBe(score);
     expect(levelForScore(score)).toBe(level);
-  });
-});
-
-describe("applyRating", () => {
-  it("raises the score more for easier ratings", () => {
-    expect(applyRating(40, Rating.Hard)).toBeLessThan(applyRating(40, Rating.Good));
-    expect(applyRating(40, Rating.Good)).toBeLessThan(applyRating(40, Rating.Easy));
-  });
-
-  it("lowers the score on Again", () => {
-    expect(applyRating(40, Rating.Again)).toBe(35);
-  });
-
-  it("clamps to 0-100", () => {
-    expect(applyRating(2, Rating.Again)).toBe(0);
-    expect(applyRating(95, Rating.Easy)).toBe(100);
   });
 });
