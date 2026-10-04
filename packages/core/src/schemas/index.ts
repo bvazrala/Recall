@@ -36,6 +36,12 @@ export const answerQuizBody = z.object({
   choice: z.number().int().min(0).max(3),
 });
 
+// A text from the student to Recall. providerMessageId (Photon's id) makes a repeat delivery a no-op.
+export const chatMessageBody = z.object({
+  text: z.string().trim().min(1).max(2000),
+  providerMessageId: z.string().min(1).max(200).optional(),
+});
+
 export const closeDayBody = z.object({
   // The day the client believes it is closing. A repeated or stale request gets a 409 instead of closing the next day.
   dayNumber: z.number().int().positive().optional(),
@@ -52,3 +58,4 @@ export type UpdateFlashcardBody = z.infer<typeof updateFlashcardBody>;
 export type ReviewFlashcardBody = z.infer<typeof reviewFlashcardBody>;
 export type CloseDayBody = z.infer<typeof closeDayBody>;
 export type AnswerQuizBody = z.infer<typeof answerQuizBody>;
+export type ChatMessageBody = z.infer<typeof chatMessageBody>;

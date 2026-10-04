@@ -156,3 +156,34 @@ export async function quizView(db: DbOrTx, quiz: QuizSessionRow) {
     correctCount: items.filter((i) => i.result?.correct).length,
   };
 }
+
+export type QuizView = Awaited<ReturnType<typeof quizView>>;
+
+const option = (q: QuizView["questions"][number], i: number) => `${"ABCD"[i]}) ${q.choices[i]}`;
+
+// The text sent when a quiz is finished: the score, then each miss with both answers.
+export function formatReview(view: QuizView): string {
+  const total = view.questions.length;
+  const missed = view.questions.map((q, i) => ({ q, n: i + 1 })).filter(({ q }) => q.result && !q.result.correct);
+  if (missed.length === 0) return `Quiz done: ${view.correctCount}/${total}. Every question right!`;
+  const lines = missed.map(({ q, n }) => {
+    const r = q.result!;
+    const yours = r.chosen >= 0 ? option(q, r.chosen) : "no answer";
+    return `${n}. ${q.prompt}\n   You: ${yours}\n   Answer: ${option(q, r.correctChoice)}`;
+  });
+  return `Quiz done: ${view.correctCount}/${total}\nMissed:\n${lines.join("\n")}\n\nAsk me about any of them, like "why is ${missed[0].n} ${"ABCD"[missed[0].q.result!.correctChoice]}?"`;
+}
+
+// Today's quiz written out for the tutor: every question, and for answered ones the pick, the key and why.
+export function quizForTutor(view: QuizView): string {
+  return view.questions
+    .map((q, i) => {
+      const options = q.choices.map((_, c) => option(q, c)).join("\n");
+      const r = q.result;
+      const outcome = r
+        ? `Student picked: ${r.chosen >= 0 ? "ABCD"[r.chosen] : "nothing"} (${r.correct ? "correct" : "wrong"}). Correct answer: ${"ABCD"[r.correctChoice]}. Explanation: ${r.explanation}`
+        : "Not answered yet (don't reveal the answer).";
+      return `Question ${i + 1} [${q.topic}]: ${q.prompt}\n${options}\n${outcome}`;
+    })
+    .join("\n\n");
+}
