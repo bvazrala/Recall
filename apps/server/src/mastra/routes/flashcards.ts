@@ -9,7 +9,8 @@ import { guard, HttpError, idParam, parseBody } from "../../lib/http";
 const LABEL_MAX = 80;
 const label = (question: string) => (question.length > LABEL_MAX ? `${question.slice(0, LABEL_MAX - 1)}…` : question);
 
-// A flashcard is a card (schedule) plus one question (front and back).
+// A flashcard is a card (schedule) plus one question (front and back). The card can also carry
+// multiple-choice questions written for quizzes, so every join picks the "flashcard" one.
 const flashcardColumns = {
   id: cards.id,
   topicId: cards.topicId,
@@ -38,7 +39,7 @@ export const listFlashcards = registerApiRoute("/topics/:topicId/flashcards", {
     const rows = await db
       .select(flashcardColumns)
       .from(cards)
-      .innerJoin(questions, eq(questions.cardId, cards.id))
+      .innerJoin(questions, and(eq(questions.cardId, cards.id), eq(questions.format, "flashcard")))
       .where(eq(cards.topicId, topicId))
       .orderBy(asc(cards.createdAt));
     return c.json({ flashcards: rows.map(shape) });
@@ -108,17 +109,17 @@ export const updateFlashcard = registerApiRoute("/flashcards/:cardId", {
       if (!card?.topicId) throw new HttpError(404, "Flashcard not found");
       if (body.question) {
         await tx.update(cards).set({ label: label(body.question) }).where(eq(cards.id, cardId));
-        await tx.update(questions).set({ prompt: body.question }).where(eq(questions.cardId, cardId));
+        await tx.update(questions).set({ prompt: body.question }).where(and(eq(questions.cardId, cardId), eq(questions.format, "flashcard")));
       }
       if (body.answer) {
-        await tx.update(questions).set({ answer: { text: body.answer } satisfies StoredAnswer }).where(eq(questions.cardId, cardId));
+        await tx.update(questions).set({ answer: { text: body.answer } satisfies StoredAnswer }).where(and(eq(questions.cardId, cardId), eq(questions.format, "flashcard")));
       }
     });
 
     const [row] = await db
       .select(flashcardColumns)
       .from(cards)
-      .innerJoin(questions, eq(questions.cardId, cards.id))
+      .innerJoin(questions, and(eq(questions.cardId, cards.id), eq(questions.format, "flashcard")))
       .where(eq(cards.id, cardId));
     return c.json({ flashcard: shape(row) });
   }),

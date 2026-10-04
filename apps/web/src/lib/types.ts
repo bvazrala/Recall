@@ -47,3 +47,23 @@ export type ConfidenceGrid = {
 
 // 1 Again, 2 Hard, 3 Good, 4 Easy
 export type Rating = 1 | 2 | 3 | 4;
+
+// Today's multiple-choice quiz (routes/quiz.ts). `result` is null until the question is answered.
+export type QuizQuestion = {
+  id: string;
+  topic: string;
+  prompt: string;
+  choices: string[];
+  result: { chosen: number; correct: boolean; correctChoice: number; explanation: string } | null;
+};
+
+export type Quiz = {
+  id: string;
+  status: "open" | "done" | "expired";
+  topics: string[];
+  questions: QuizQuestion[];
+  answeredCount: number;
+  correctCount: number;
+};
+
+export type QuizAnswer = { correct: boolean; correctChoice: number; explanation: string; done: boolean };

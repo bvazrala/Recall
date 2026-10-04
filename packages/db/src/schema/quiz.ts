@@ -10,6 +10,7 @@ export const quizSessions = pgTable(
     id: uuid().primaryKey().defaultRandom(),
     studentId: uuid().notNull().references(() => students.id, { onDelete: "cascade" }),
     kind: text({ enum: ["first", "daily", "on_demand"] }).notNull(),
+    studyDayId: uuid().references(() => studyDays.id, { onDelete: "cascade" }), // the day a daily web quiz belongs to
     queue: jsonb().$type<string[]>().notNull().default([]), // question ids still to ask
     pendingQuestionId: uuid().references(() => questions.id, { onDelete: "set null" }),
     pendingSentAt: timestamp({ withTimezone: true }),
