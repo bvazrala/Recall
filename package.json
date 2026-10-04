@@ -1,0 +1,12 @@
+{
+  "name": "recall",
+  "private": true,
+  "packageManager": "pnpm@12.9.1",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {},
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}
