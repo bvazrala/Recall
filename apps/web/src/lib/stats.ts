@@ -1,12 +1,14 @@
 import type { ConfidenceGrid, HistoryResponse } from "./types";
 import type { DayState } from "./nav";
 
-// Study days are numbered, not calendar days, so the streak is the run of closed days ending at today.
+// Study days are numbered, not calendar days. The streak is the run of closed days ending at the latest
+// closed day; today's open day neither extends nor breaks it until it is closed.
 export function streakOf(h: HistoryResponse): { current: number; longest: number } {
   let longest = 0;
   let run = 0;
   for (const d of h.days) {
-    run = d.status === "closed" ? run + 1 : 0;
+    if (d.status === "open") continue;
+    run += 1;
     longest = Math.max(longest, run);
   }
   return { current: run, longest };
