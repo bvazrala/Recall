@@ -1,9 +1,11 @@
 import { Mastra } from "@mastra/core";
 import { example } from "./routes/example";
 import { status } from "./routes/status";
+import { myAgent } from "./agents/agent";
 
 // `mastra dev` and `mastra build` look for this export. Register routes in server.apiRoutes.
 export const mastra = new Mastra({
+  agents: { myAgent },
   server: {
     port: Number(process.env.PORT ?? 4111),
     // The Next.js dashboard calls this API from the browser.
