@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { eq, or } from "drizzle-orm";
+import { eq, inArray, or } from "drizzle-orm";
 import { levelForScore } from "../../../core/src";
 import type { Card } from "../../../core/src";
 import {
@@ -14,7 +14,8 @@ import type { Deck } from "./types";
 // Maya is a demo student. A fixed id and phone let the scripts replace her, and let the web app point at her
 // once: set NEXT_PUBLIC_STUDENT_ID to MAYA_ID in apps/web/.env.local. The phone matches the web app's mock user.
 export const MAYA_ID = "6d0a9c52-1f3e-4b7a-8c2d-5e4f3a2b1c01";
-export const MAYA_PHONE = "+15550100142";
+// Set SEED_PHONE (e.g. +12484955983) to seed Maya's data onto your own number for the iMessage demo.
+export const MAYA_PHONE = process.env.SEED_PHONE ?? "+15550100142";
 export const TIMEZONE = "America/Detroit";
 
 export const decks: Deck[] = [...bioDecks, ...chemDecks, ...psychDecks];
@@ -97,13 +98,15 @@ async function insertChunks<T>(rows: T[], insert: (chunk: T[]) => Promise<unknow
 
 // Replaces Maya with the plan. Deleting her student row cascades to everything she owns.
 async function persist(plan: Plan) {
-  if (existsSync(".env")) process.loadEnvFile(".env");
+  for (const f of [".env", "../../.env"]) if (existsSync(f)) process.loadEnvFile(f);
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is missing. Copy .env.example to .env and paste your Neon URL.");
   const { db, pool } = createDb(url);
   try {
     await db.transaction(async (tx) => {
-      await tx.delete(students).where(or(eq(students.id, MAYA_ID), eq(students.phone, MAYA_PHONE)));
+      // Also clears an older row saved without the "+".
+      const phones = [MAYA_PHONE, MAYA_PHONE.replace(/\D/g, "")];
+      await tx.delete(students).where(or(eq(students.id, MAYA_ID), inArray(students.phone, phones)));
       await tx.insert(students).values(plan.student);
       await insertChunks(plan.topics, (c) => tx.insert(topics).values(c));
       await insertChunks(plan.cards, (c) => tx.insert(cards).values(c));
