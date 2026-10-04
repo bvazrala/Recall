@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { MessageSquare } from "lucide-react";
-import { AppBar, Button, Card, Chip, H2, Label, Page, Segmented, Stat, StreakStrip, Title } from "@/components/ui";
+import { AppBar, Button, Chip, Folder, H2, MarkOver, Page, Segmented, Stat, StickyNote, StreakStrip, Title } from "@/components/ui";
 import { LoadError, Loading } from "@/components/load-state";
 import { useDay } from "@/components/day-context";
 import { api, forStudent, useLoad } from "@/lib/api";
 import { cardCount, joinNames, minutesFor } from "@/lib/day-data";
-import { ICON, cx, useNav } from "@/lib/nav";
+import { cx, useNav, type DayState } from "@/lib/nav";
 import { REVIEWS_PER_DAY, USER } from "@/lib/mock";
 import { retentionSeries, streakOf, weekStrip } from "@/lib/stats";
 import type { ConfidenceGrid, HistoryResponse, Topic } from "@/lib/types";
@@ -17,101 +17,132 @@ const loadGrid = () => api<ConfidenceGrid>(forStudent("/confidence-grid?days=14"
 const loadTopics = () => api<{ topics: Topic[] }>(forStudent("/topics")).then((r) => r.topics);
 
 const fmtDate = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+// Today's number, written over its mark in handwriting with the highlighter.
+const TODAY_NOTE = "highlight absolute font-hand text-[22px] leading-[1.1] text-pen [--highlight-from:35%]";
 
 function Chart({ empty, grid }: { empty?: boolean; grid?: ConfidenceGrid }) {
   const [mode, setMode] = useState<"reviews" | "retention">("retention");
   const retention = grid ? retentionSeries(grid) : [];
   const n = 14;
-  const W = 353, H = 170, L = 26, B = 22, cw = W - L, ch = H - B - 8;
-  const y = (v: number) => 8 + ch - (v / 30) * ch;
-  const yr = (v: number) => 8 + ch - (v / 100) * ch;
-  const bw = cw / n;
-  const days = Array.from({ length: n }, (_, i) => (grid && [0, 6, n - 1].includes(i) ? fmtDate(grid.dates[i]) : ""));
+  const x = (i: number) => ((i + 0.5) / n) * 100;
+  const peak = Math.max(...REVIEWS_PER_DAY) * 1.2;
   const points = retention.flatMap((v, i) => (v === null ? [] : [{ v, i }]));
   const first = points[0], last = points.at(-1);
 
   return (
     <section>
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <H2>Your reviews</H2>
-        <Segmented className="w-[200px]" value={mode} onChange={setMode} options={[{ id: "reviews", label: "Reviews" }, { id: "retention", label: "Retention" }]} />
+        <Segmented small value={mode} onChange={setMode} options={[{ id: "reviews", label: "Reviews" }, { id: "retention", label: "Retention" }]} />
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className={cx("w-full mt-5", empty && "opacity-40")} role="img" aria-label={mode === "reviews" ? "Cards reviewed per day, last 14 days" : "Retention, last 14 days"}>
-        {(mode === "reviews" ? [0, 10, 20, 30] : [0, 25, 50, 75, 100]).map((v) => {
-          const yy = mode === "reviews" ? y(v) : yr(v);
-          return (
-            <g key={v}>
-              <line x1={L} x2={W} y1={yy} y2={yy} stroke="#1C1B19" strokeOpacity={0.14} />
-              <text x={0} y={yy + 4} fontSize={10} className="mono" fill="#6B675E">{mode === "reviews" ? v : `${v}%`}</text>
-            </g>
-          );
-        })}
-        {!empty && mode === "reviews" && REVIEWS_PER_DAY.map((v, i) => {
-          const x = L + i * bw + 3, h = 8 + ch - y(v), today = i === n - 1;
-          return (
-            <g key={i}>
-              {v > 0 && <path d={`M${x},${y(0)} v${-(h - 2)} q0,-2 2,-2 h${bw - 10} q2,0 2,2 v${h - 2} z`} fill={today ? "#C93A22" : "#1C1B19"} />}
-              {today && <text x={x + (bw - 6) / 2} y={y(v) - 6} textAnchor="middle" fontSize={11} className="mono" fill="#A82E1A" fontWeight={500}>{v}</text>}
-            </g>
-          );
-        })}
-        {!empty && mode === "retention" && (
-          <>
-            <polyline fill="none" stroke="#1C1B19" strokeWidth={1.5} points={points.map((p) => `${L + p.i * bw + bw / 2},${yr(p.v)}`).join(" ")} />
-            {points.map((p) => <circle key={p.i} cx={L + p.i * bw + bw / 2} cy={yr(p.v)} r={p.i === n - 1 ? 4 : 2.5} fill={p.i === n - 1 ? "#C93A22" : "#1C1B19"} />)}
-          </>
+      <figure className="mt-[52px]">
+        {mode === "reviews" ? (
+          <div className={cx("flex h-[192px] items-end gap-1.5 border-b-2 border-ink px-1 lg:gap-2.5", empty && "opacity-40")} role="img" aria-label="Cards reviewed per day, last 14 days">
+            {!empty && REVIEWS_PER_DAY.map((v, i) => {
+              const today = i === n - 1;
+              return (
+                <div
+                  key={i}
+                  className={cx("relative flex-1 rounded-t-[3px]", v > 0 && (today ? "bg-[repeating-linear-gradient(135deg,var(--color-pen)_0_3px,transparent_3px_7px)] shadow-[inset_0_0_0_2px_var(--color-pen)]" : "bg-pen"))}
+                  style={{ height: `${(v / peak) * 100}%` }}
+                >
+                  {today && <span className={cx(TODAY_NOTE, "bottom-full left-1/2 mb-1 -translate-x-1/2")}>{v}</span>}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className={cx("relative h-[192px] border-b-2 border-ink", empty && "opacity-40")} role="img" aria-label="Retention, last 14 days">
+            {!empty && last && (
+              <>
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 size-full overflow-visible" aria-hidden>
+                  <polyline fill="none" stroke="var(--color-pen)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" points={points.map((p) => `${x(p.i)},${100 - p.v}`).join(" ")} />
+                </svg>
+                {points.map((p) => (
+                  <span key={p.i} className="absolute size-[7px] -translate-x-1/2 translate-y-1/2 rounded-full bg-pen" style={{ left: `${x(p.i)}%`, bottom: `${p.v}%` }}>
+                    {p.i === last.i && <MarkOver kind="circle" size={24} className="text-pen" />}
+                  </span>
+                ))}
+                {first.i !== last.i && <span className="absolute -translate-x-1/2 font-hand text-[17px] leading-[1.1] text-ink-muted" style={{ left: `${x(first.i)}%`, bottom: `calc(${first.v}% + 12px)` }}>{first.v}%</span>}
+                <span className={cx(TODAY_NOTE, "-translate-x-[70%]")} style={{ left: `${x(last.i)}%`, bottom: `calc(${last.v}% + 16px)` }}>{last.v}%</span>
+              </>
+            )}
+          </div>
         )}
-        {days.map((d, i) => d && <text key={i} x={L + i * bw + bw / 2} y={H - 4} textAnchor={i === n - 1 ? "end" : "middle"} fontSize={10} className="mono" fill="#6B675E">{d}</text>)}
-      </svg>
-      <p className="text-[14px] leading-5 text-ink-muted mt-3">
-        {empty
-          ? "Your reviews show up here after your first session."
-          : mode === "reviews"
-            ? "Sample data. Daily review counts arrive once the server reports them."
-            : first && last && first.i !== last.i
-              ? `Retention is ${last.v}%, from ${first.v}% on ${fmtDate(grid!.dates[first.i])}.`
-              : last ? `Retention is ${last.v}% today.` : "Retention shows up after your first review."}
-      </p>
-    </section>
-  );
-}
-
-function Streak({ empty, history }: { empty?: boolean; history?: HistoryResponse }) {
-  const { current, longest } = history ? streakOf(history) : { current: 0, longest: 0 };
-  return (
-    <section>
-      <div className="flex items-end justify-between">
-        <div className="flex items-baseline gap-2">
-          <span className={cx("font-serif font-medium text-[64px] leading-[56px]", empty && "text-ink-muted/50")}>{empty ? 0 : current}</span>
-          <span className="text-[16px]">day streak</span>
+        <div className="mt-2 flex h-5 justify-between text-[14px] text-ink-muted">
+          {grid && [fmtDate(grid.dates[0]), fmtDate(grid.dates[6]), "Today"].map((d) => <span key={d}>{d}</span>)}
         </div>
-        <span className="mono text-[13px] text-ink-muted">Longest: {empty ? 0 : longest}</span>
-      </div>
-      <div className="mt-5">
-        <StreakStrip muted={empty} days={empty || !history ? ["future", "future", "future", "future", "future", "future", "today"] : weekStrip(history)} />
-      </div>
+        <figcaption className={cx("mt-4", empty && "font-hand text-[18px] text-ink-muted")}>
+          {empty
+            ? "Your reviews show up here after your first session."
+            : mode === "reviews"
+              ? "Sample data. Daily review counts arrive once the server reports them."
+              : first && last && first.i !== last.i
+                ? `Retention is ${last.v}%, from ${first.v}% on ${fmtDate(grid!.dates[first.i])}.`
+                : last ? `Retention is ${last.v}% today.` : "Retention shows up after your first review."}
+        </figcaption>
+      </figure>
     </section>
   );
 }
 
-function StatRow({ retention, cards, topics }: { retention: number | null; cards: number; topics: number }) {
+const NO_WEEK: DayState[] = ["future", "future", "future", "future", "future", "future", "today"];
+
+// The streak is the screen's one sticky note. Phones get the small note with the week under it;
+// desktop has room for the week on the note itself.
+function Streak({ empty, history, large }: { empty?: boolean; history?: HistoryResponse; large?: boolean }) {
+  const { current, longest } = history && !empty ? streakOf(history) : { current: 0, longest: 0 };
+  const week = empty || !history ? NO_WEEK : weekStrip(history);
+  const best = <>Your longest is {plural(longest, "day")}.</>;
+  if (large) {
+    return (
+      <StickyNote large className="w-full max-w-[300px] self-start">
+        <p className="flex items-baseline gap-2.5">
+          <span className={cx("font-hand text-[62px] leading-[0.95]", empty ? "text-pen/40" : "text-pen")}>{current}</span>
+          <span className="font-hand text-[23px] leading-[1.1] text-[#3b3418]">day streak</span>
+        </p>
+        <p className="mt-3 mb-3.5 text-[15px] text-[#4a4220]">{best}</p>
+        <StreakStrip muted={empty} days={week} className="text-[#4a4220]" />
+      </StickyNote>
+    );
+  }
   return (
-    <div className="flex divide-x divide-line border-y border-line [&>*]:px-3 [&>*:first-child]:pl-0">
-      <Stat value={retention === null ? "–" : <>{retention}<span className="text-[18px]">%</span></>} label="retention" />
+    <StickyNote className="w-[164px] shrink-0">
+      <p className={cx("font-hand text-[42px] leading-none", empty ? "text-pen/40" : "text-pen")}>{current}</p>
+      <p className="font-hand text-[18px] leading-[1.2] text-[#3b3418]">day streak</p>
+    </StickyNote>
+  );
+}
+
+function Week({ empty, history }: { empty?: boolean; history?: HistoryResponse }) {
+  const longest = history && !empty ? streakOf(history).longest : 0;
+  return (
+    <div>
+      <StreakStrip muted={empty} days={empty || !history ? NO_WEEK : weekStrip(history)} className="text-ink-muted" />
+      <p className="mt-3 text-[15px] text-ink-muted">Your longest is {plural(longest, "day")}.</p>
+    </div>
+  );
+}
+
+function Stats({ retention, cards, topics }: { retention: number | null; cards: number; topics: number }) {
+  return (
+    <>
+      <Stat value={retention === null ? "–" : `${retention}%`} label="retention" />
       <Stat value={cards} label="flashcards" />
       <Stat value={topics} label="topics" />
-    </div>
+    </>
   );
 }
 
 function NextText() {
   const { go } = useNav();
   return (
-    <p className="flex items-center gap-2 text-[14px] text-ink-muted">
-      <MessageSquare {...ICON} className="shrink-0" />
-      <span>Next text tonight at <span className="mono text-ink">7:30 PM</span></span>
-      <span aria-hidden>·</span>
-      <button onClick={() => go("settings")} className="text-ink font-medium underline underline-offset-4 min-h-11">Change</button>
+    <p className="flex flex-wrap items-center gap-x-2.5 text-[16px] text-ink-muted lg:text-[17px]">
+      <MessageSquare size={22} strokeWidth={2} className="shrink-0" aria-hidden />
+      Next text tonight at 7:30 PM.
+      <button onClick={() => go("settings")} className="min-h-11 font-bold text-pen underline hover:text-pen-dark">Change</button>
     </p>
   );
 }
@@ -122,12 +153,16 @@ function Greeting({ welcome }: { welcome?: boolean }) {
   const h = now?.getHours() ?? 12;
   const part = h < 12 ? "morning" : h < 18 ? "afternoon" : "evening";
   return (
-    <>
-      <Label>{now ? now.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }) : " "}</Label>
-      <Title className={cx("mt-2", !welcome && "lg:text-[36px] lg:leading-10")}>{welcome ? `Welcome, ${USER.first}.` : `Good ${part}, ${USER.first}.`}</Title>
-    </>
+    <div className="pt-3.5 lg:pt-0">
+      <p className="font-hand text-[18px] leading-[1.3] text-ink-muted lg:text-[20px]">{now ? now.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }) : " "}</p>
+      <Title className="mt-0.5 lg:mt-0">{welcome ? `Welcome, ${USER.first}.` : `Good ${part}, ${USER.first}.`}</Title>
+    </div>
   );
 }
+
+const COLUMNS = "lg:mt-10 lg:flex lg:flex-wrap lg:items-start lg:gap-x-14 lg:gap-y-12";
+const MAIN = "min-w-0 lg:flex lg:flex-[3_1_480px] lg:flex-col lg:gap-[52px]";
+const ASIDE = "hidden min-w-0 flex-[1_1_260px] flex-col gap-11 pt-2 lg:flex";
 
 export function Home() {
   const { go } = useNav();
@@ -136,7 +171,7 @@ export function Home() {
   const grid = useLoad(loadGrid);
   const topics = useLoad(loadTopics);
 
-  if (error) return <><AppBar /><Page wide><LoadError error={error} /></Page></>;
+  if (error) return <><AppBar /><Page><div className="pt-2 lg:pt-0"><LoadError error={error} /></div></Page></>;
   if (day && day.topics.length === 0) return <HomeEmpty />;
 
   const cards = day ? cardCount(day) : 0;
@@ -146,33 +181,39 @@ export function Home() {
   return (
     <>
       <AppBar />
-      <Page wide>
-        <Greeting />
-        <div className="mt-6 lg:grid lg:grid-cols-[1fr_340px] lg:gap-12">
-          <div className="space-y-10">
-            <Card className="p-5 lg:p-7">
-              <Label>Today&apos;s study</Label>
-              {loading || !day ? <Loading className="h-28 mt-3" /> : (
+      <Page>
+        <header className="lg:flex lg:flex-wrap lg:items-end lg:justify-between lg:gap-x-8 lg:gap-y-4">
+          <Greeting />
+          <div className="hidden lg:-mb-px lg:block"><NextText /></div>
+        </header>
+        <div className={COLUMNS}>
+          <div className={MAIN}>
+            <Folder tab="Today" className="mt-[21px] lg:mt-0">
+              {loading || !day ? <Loading className="h-40" /> : (
                 <>
-                  <h2 className="font-serif font-medium text-[24px] leading-[30px] mt-2">{joinNames(day.topics.map((t) => t.name))}</h2>
-                  <p className="mono text-[14px] text-ink-muted mt-2">{cards} cards due · 1 quiz · about {minutesFor(cards)} min</p>
-                  <div className="flex flex-wrap gap-2 mt-3">{day.topics.map((t) => <Chip key={t.topicId}>{t.name}</Chip>)}</div>
-                  <div className="mt-6 flex flex-col gap-1 lg:flex-row lg:items-center lg:gap-3">
-                    <Button full className="lg:w-auto lg:px-8" disabled={cards === 0} onClick={() => go("study")}>Start today&apos;s review</Button>
+                  <h2 className="font-hand text-[24px] leading-[1.25] text-pen lg:text-[35px] lg:leading-[1.2]">{joinNames(day.topics.map((t) => t.name))}</h2>
+                  <p className="mt-2 lg:mt-2.5 lg:text-[18px]">{plural(cards, "card")} and 1 quiz, about {plural(minutesFor(cards), "minute")}.</p>
+                  <div className="mt-3.5 flex flex-wrap gap-2 lg:mt-4 lg:gap-2.5">{day.topics.map((t) => <Chip key={t.topicId}>{t.name}</Chip>)}</div>
+                  <div className="mt-[30px] flex flex-col gap-2 lg:mt-8 lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-8 lg:gap-y-[18px]">
+                    <Button full className="lg:w-auto lg:min-w-[260px] lg:px-8" disabled={cards === 0} onClick={() => go("study")}>Start today&apos;s review</Button>
                     <Button variant="text" onClick={() => go("question")}>Take today&apos;s quiz</Button>
                   </div>
                 </>
               )}
-              <div className="mt-4 pt-1 border-t border-line lg:hidden"><NextText /></div>
-            </Card>
-            <div className="lg:hidden"><Streak history={history.data} /></div>
-            <Chart grid={grid.data} />
-            <div className="lg:hidden"><StatRow {...stats} /></div>
+            </Folder>
+            <div className="lg:hidden">
+              <div className="mt-[34px] flex items-start gap-6">
+                <Streak history={history.data} />
+                <dl className="mt-1 flex flex-1 flex-col gap-3"><Stats {...stats} /></dl>
+              </div>
+              <div className="mt-7"><Week history={history.data} /></div>
+              <div className="mt-3"><NextText /></div>
+            </div>
+            <div className="mt-9 lg:mt-0"><Chart grid={grid.data} /></div>
           </div>
-          <aside className="hidden lg:block space-y-10 lg:border-l lg:border-line lg:pl-12">
-            <Streak history={history.data} />
-            <StatRow {...stats} />
-            <NextText />
+          <aside className={ASIDE}>
+            <Streak large history={history.data} />
+            <dl className="grid grid-cols-3 gap-3"><Stats {...stats} /></dl>
           </aside>
         </div>
       </Page>
@@ -185,18 +226,21 @@ export function HomeEmpty() {
   return (
     <>
       <AppBar />
-      <Page wide>
+      <Page>
         <Greeting welcome />
-        <div className="mt-6 lg:grid lg:grid-cols-[1fr_340px] lg:gap-12">
-          <div className="space-y-10">
-            <Card className="p-5 lg:p-7">
-              <h2 className="font-serif font-medium text-[24px] leading-[30px]">Start with a syllabus.</h2>
-              <p className="text-[16px] leading-6 text-ink-muted mt-2">Upload one file and Recall builds your first week.</p>
-              <Button full className="mt-6 lg:w-auto lg:px-8" onClick={() => go("add-class")}>Upload a syllabus</Button>
-            </Card>
-            <Chart empty />
+        <div className={COLUMNS}>
+          <div className={MAIN}>
+            <div className="mt-5 lg:mt-0">
+              <p className="max-w-[420px] font-hand text-[20px] leading-[1.4] text-ink-muted">Start with a syllabus. Upload one file and Recall builds your first week.</p>
+              <Button full className="mt-7 lg:w-auto lg:min-w-[260px] lg:px-8" onClick={() => go("add-class")}>Upload a syllabus</Button>
+            </div>
+            <div className="mt-10 lg:hidden">
+              <Streak empty />
+              <div className="mt-7"><Week empty /></div>
+            </div>
+            <div className="mt-9 lg:mt-0"><Chart empty /></div>
           </div>
-          <div className="mt-10 lg:mt-0"><Streak empty /></div>
+          <aside className={ASIDE}><Streak large empty /></aside>
         </div>
       </Page>
     </>

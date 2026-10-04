@@ -1,119 +1,236 @@
 "use client";
 
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { Check, ChevronLeft, ChevronRight, Loader2, Menu, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Menu, Paperclip, X } from "lucide-react";
 import { ICON, cx, useNav, type DayState, type Screen } from "@/lib/nav";
+import { CLASSES } from "@/lib/mock";
 
-export function Wordmark({ className = "text-[22px]" }: { className?: string }) {
+// The notebook pieces. design/DESIGN.md has the recipe for each one, and design/screens/ shows them in use.
+
+// A folder tab is a trapezoid. Paper objects carry their own shadow instead of a shared one.
+const TAB = "[clip-path:polygon(0_100%,10%_0,90%_0,100%_100%)]";
+const PANEL = "rounded-[0_14px_14px_14px] bg-manila shadow-[0_2px_0_var(--color-manila-edge),0_16px_26px_-22px_rgba(74,56,14,0.75)]";
+const CARD = "rounded-[3px] bg-surface shadow-[0_1px_0_var(--color-line),0_8px_16px_-12px_rgba(30,63,150,0.55)]";
+// The red line near the top of an index card.
+const CARD_LINE = "bg-[linear-gradient(180deg,transparent_0_32px,#ee9a9a_32px_33.5px,transparent_33.5px)]";
+
+export function Wordmark({ className = "text-[30px]" }: { className?: string }) {
   return (
-    <span className={cx("font-serif font-semibold tracking-tight leading-none", className)}>
-      Recall<span className="text-accent">.</span>
+    <span className={cx("font-hand leading-[1.1] text-pen", className)}>
+      Recall<span className="text-redpen">.</span>
     </span>
   );
 }
 
+// Hand-drawn grading marks. They take the current text color: pen for right, redpen for wrong.
+const MARKS = {
+  check: { box: [24, 24], width: 2.6, d: "M4.5 13.2c2 1.6 3.4 3.3 4.6 5.3C11.8 12.6 15.4 8 20 4.6" },
+  circle: { box: [40, 38], width: 2, d: "M21 3.2C30.6 2.8 37.6 9 37.2 18.6 36.8 28.2 29.2 34.8 19.8 34.6 10.4 34.4 2.8 27.6 3 18.6 3.2 9.6 10.4 3.4 19.6 4.2" },
+  cross: { box: [24, 24], width: 2.4, d: "M5 4.6c4.6 4.4 9.2 9.6 14 14.8M18.8 4.8C13.6 9.4 9.2 14.2 4.6 19.4" },
+} as const;
+
+export function Mark({ kind, size = 20, strokeWidth, label, className }: { kind: keyof typeof MARKS; size?: number; strokeWidth?: number; label?: string; className?: string }) {
+  const m = MARKS[kind];
+  return (
+    <svg
+      viewBox={`0 0 ${m.box[0]} ${m.box[1]}`}
+      width={size}
+      height={Math.round((size * m.box[1]) / m.box[0])}
+      className={cx("shrink-0", className)}
+      role={label ? "img" : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
+    >
+      <path d={m.d} fill="none" stroke="currentColor" strokeWidth={strokeWidth ?? m.width} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// A mark drawn over its parent, centered on it (the circle around a letter, the X through one).
+export function MarkOver({ kind, size, className }: { kind: keyof typeof MARKS; size: number; className?: string }) {
+  return <Mark kind={kind} size={size} className={cx("pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2", className)} />;
+}
+
+export function Highlight({ children, className }: { children: ReactNode; className?: string }) {
+  return <span className={cx("highlight", className)}>{children}</span>;
+}
+
 type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "text" | "danger" | "black";
+  variant?: "primary" | "secondary" | "text" | "danger";
   loading?: boolean;
   full?: boolean;
 };
+// primary and secondary are folders (ink and manila); text and danger are underlined links.
+// A folder needs 12px of clear space above it for its tab.
 export function Button({ variant = "primary", loading, full, className, children, disabled, ...rest }: BtnProps) {
-  const base =
-    "inline-flex items-center justify-center gap-2 h-12 rounded-ctl text-[16px] font-semibold transition-[background,color,transform,opacity] duration-150 ease-out active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100 select-none";
+  const folder = variant === "primary" || variant === "secondary";
   const v = {
-    primary: "bg-accent text-surface px-5 active:bg-[#a82e1a]",
-    secondary: "border border-ink text-ink px-5 active:bg-ink/5",
-    black: "bg-ink text-paper px-5 active:bg-black",
-    text: "text-ink px-3 underline-offset-4 hover:underline min-h-11",
-    danger: "text-accent-text px-3 min-h-11",
+    primary: "bg-pen text-white shadow-[0_3px_0_rgba(17,30,66,0.4)] hover:bg-pen-dark",
+    secondary: "bg-manila text-ink shadow-[0_3px_0_var(--color-manila-edge)]",
+    text: "text-pen hover:text-pen-dark",
+    danger: "text-redpen",
   }[variant];
   return (
-    <button className={cx(base, v, full && "w-full", className)} disabled={disabled || loading} {...rest}>
+    <button
+      className={cx(
+        "relative inline-flex items-center justify-center gap-2 text-[17px] font-bold select-none transition-[background-color,color,transform,opacity] duration-150 ease-out disabled:opacity-50",
+        folder
+          ? "min-h-[52px] rounded-[0_10px_10px_10px] px-5 py-3.5 active:translate-y-px disabled:active:translate-y-0 lg:min-h-[54px] lg:py-[15px] lg:text-[18px]"
+          : "min-h-11 underline decoration-2 underline-offset-[5px]",
+        v,
+        full && "w-full",
+        className,
+      )}
+      disabled={disabled || loading}
+      {...rest}
+    >
+      {folder && <span aria-hidden className="absolute left-0 -top-[11px] h-3 w-24 max-w-[60%] bg-inherit [clip-path:polygon(0_100%,12%_0,88%_0,100%_100%)]" />}
       {loading && <Loader2 {...ICON} className="animate-spin" />}
       {children}
     </button>
   );
 }
 
-export function IconBtn({ label, onClick, children }: { label: string; onClick?: () => void; children: ReactNode }) {
+export function IconBtn({ label, onClick, children, className }: { label: string; onClick?: () => void; children: ReactNode; className?: string }) {
   return (
-    <button aria-label={label} onClick={onClick} className="size-11 grid place-items-center rounded-ctl active:bg-ink/5 -mx-2.5">
+    <button aria-label={label} onClick={onClick} className={cx("grid size-11 shrink-0 place-items-center text-ink", className ?? "-ml-3")}>
       {children}
     </button>
   );
 }
 
-export function Chip({ children, tone = "line", className }: { children: ReactNode; tone?: "line" | "ink" | "good" | "accent" | "marker"; className?: string }) {
-  const t = {
-    line: "border border-line text-ink bg-surface",
-    ink: "bg-ink text-paper",
-    good: "border border-good/40 text-good bg-surface",
-    accent: "border border-accent/40 text-accent-text bg-surface",
-    marker: "bg-marker text-ink",
-  }[tone];
-  return <span className={cx("inline-flex items-center h-6 px-2 rounded-chip text-[12px] font-medium whitespace-nowrap", t, className)}>{children}</span>;
+// A small plain tab for things that are not a class: a topic, a week. "shade" sits on manila, "manila" on white or paper.
+export function Chip({ children, tone = "shade", className }: { children: ReactNode; tone?: "shade" | "manila"; className?: string }) {
+  return (
+    <span className={cx("inline-flex h-[26px] max-w-full items-center px-4 font-hand text-[15px] text-folder-text", TAB, tone === "manila" ? "bg-manila" : "bg-manila-shade", className)}>
+      <span className="truncate">{children}</span>
+    </span>
+  );
 }
-export const CodeChip = ({ code }: { code: string }) => <Chip className="mono !text-[12px] tracking-tight">{code}</Chip>;
-export const SourceChip = ({ children }: { children: ReactNode }) => (
-  <span className="inline-flex items-center h-6 px-2 rounded-chip text-[12px] text-ink-muted bg-ink/[0.05]">{children}</span>
+
+// Each class keeps one tab color everywhere: green, purple, orange, in the order of the class list.
+const CLASS_BG = ["bg-class-green", "bg-class-purple", "bg-class-orange"];
+export const classBg = (code: string) => CLASS_BG[Math.max(0, CLASSES.findIndex((c) => c.code === code)) % CLASS_BG.length];
+
+export const CodeChip = ({ code }: { code: string }) => (
+  <span className={cx("inline-flex h-7 items-center px-[18px] text-sm font-bold whitespace-nowrap text-white", TAB, classBg(code))}>{code}</span>
 );
 
+// Where a piece of content came from, clipped on.
+export const SourceChip = ({ children }: { children: ReactNode }) => (
+  <span className="inline-flex items-center gap-1 text-[15px] text-ink-muted">
+    <Paperclip size={16} strokeWidth={2} className="shrink-0" aria-hidden />
+    {children}
+  </span>
+);
+
+// A handwritten note in pencil: a card label, a date, a remark in the margin.
 export function Label({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cx("label text-ink-muted", className)}>{children}</div>;
+  return <div className={cx("font-hand text-[15px] leading-5 text-ink-muted", className)}>{children}</div>;
 }
 
+// A plain index card.
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cx("bg-surface border border-line rounded-card", className)}>{children}</div>;
+  return <div className={cx(CARD, className)}>{children}</div>;
 }
 
-export function Bar({ value, tone = "ink", className }: { value: number; tone?: "ink" | "good" | "accent"; className?: string }) {
-  const c = { ink: "bg-ink", good: "bg-good", accent: "bg-accent" }[tone];
+// A confirmation, on an index card over the dimmed page. Clicking outside closes it.
+export function Dialog({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   return (
-    <div className={cx("h-1 rounded-chip bg-ink/10 overflow-hidden", className)} role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}>
-      <div className={cx("h-full rounded-chip transition-[width] duration-250 ease-out", c)} style={{ width: `${value}%` }} />
-    </div>
-  );
-}
-
-export function Segmented<T extends string>({ options, value, onChange, className }: { options: { id: T; label: string }[]; value: T; onChange: (v: T) => void; className?: string }) {
-  return (
-    <div role="tablist" className={cx("flex p-1 rounded-ctl bg-ink/[0.06]", className)}>
-      {options.map((o) => (
-        <button
-          key={o.id}
-          role="tab"
-          aria-selected={o.id === value}
-          onClick={() => onChange(o.id)}
-          className={cx(
-            "flex-1 h-9 rounded-[6px] text-[14px] font-medium transition-colors duration-150",
-            o.id === value ? "bg-surface text-ink border border-line" : "text-ink-muted",
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-export function Row({ title, meta, onClick, right, lead }: { title: ReactNode; meta?: ReactNode; onClick?: () => void; right?: ReactNode; lead?: ReactNode }) {
-  return (
-    <button onClick={onClick} className="w-full flex items-center gap-3 py-3.5 min-h-14 text-left active:bg-ink/[0.03]">
-      {lead}
-      <div className="flex-1 min-w-0">
-        <div className="text-[16px] leading-6">{title}</div>
-        {meta && <div className="mono text-[13px] text-ink-muted mt-0.5">{meta}</div>}
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center" onClick={onClose}>
+      <div role="dialog" aria-modal aria-label={title} className={cx("anim-in w-full max-w-[380px] p-5", CARD)} onClick={(e) => e.stopPropagation()}>
+        <h2 className="font-hand text-[24px] leading-[1.2] text-pen">{title}</h2>
+        {children}
       </div>
-      {right}
-      {onClick && <ChevronRight {...ICON} className="text-ink-muted shrink-0" />}
-    </button>
+    </div>
   );
 }
 
+// The manila panel that sits under a row of folder tabs (see Segmented).
+export function FolderPanel({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cx(PANEL, "px-3.5 py-4 lg:px-5 lg:py-5", className)}>{children}</div>;
+}
+
+// A manila folder with one labeled tab, such as "Today". tabClassName replaces the tab's manila fill.
+// Give it a height (h-full in a grid row, say) and the panel stretches to fill it.
+export function Folder({ tab, children, className, tabClassName }: { tab: ReactNode; children: ReactNode; className?: string; tabClassName?: string }) {
+  return (
+    <section className={cx("relative flex flex-col pt-[25px] lg:pt-[27px]", className)}>
+      <p className={cx("absolute top-0 left-0 flex h-[26px] items-center px-[22px] lg:h-7 lg:px-[26px]", TAB, tabClassName ?? "bg-manila font-hand text-[16px] text-folder-text lg:text-[17px]")}>{tab}</p>
+      <div className={cx(PANEL, "flex-1 px-5 pt-5 pb-4 lg:rounded-[0_16px_16px_16px] lg:px-8 lg:pt-7 lg:pb-[30px]")}>{children}</div>
+    </section>
+  );
+}
+
+// The one sticky note a screen may have, for the streak. `large` is the desktop size.
+export function StickyNote({ children, className, large }: { children: ReactNode; className?: string; large?: boolean }) {
+  return (
+    <div className={cx("relative bg-sticky", large ? "-rotate-[1.5deg] px-[22px] pt-[26px] pb-5 shadow-[0_16px_22px_-18px_rgba(91,72,0,0.75)]" : "-rotate-2 px-3.5 pt-[18px] pb-3.5 shadow-[0_14px_18px_-14px_rgba(91,72,0,0.7)]", className)}>
+      <span aria-hidden className={cx("absolute bg-white/60", large ? "-top-2.5 left-1/2 -ml-9 h-5 w-[72px] rotate-[3deg]" : "-top-[9px] left-10 h-[18px] w-14 rotate-[4deg]")} />
+      {children}
+    </div>
+  );
+}
+
+export function Bar({ value, className }: { value: number; className?: string }) {
+  return (
+    <div className={cx("h-1.5 overflow-hidden rounded-[2px] bg-pen/15", className)} role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}>
+      <div className="h-full rounded-[2px] bg-pen transition-[width] duration-250 ease-out" style={{ width: `${value}%` }} />
+    </div>
+  );
+}
+
+// Folder tabs. Put a FolderPanel right under them. `small` is the print version for toggles that have no panel.
+export function Segmented<T extends string>({ options, value, onChange, className, small }: { options: { id: T; label: string }[]; value: T; onChange: (v: T) => void; className?: string; small?: boolean }) {
+  return (
+    <div role="tablist" className={cx("flex items-end gap-1", !small && "pl-1.5", className)}>
+      {options.map((o) => {
+        const on = o.id === value;
+        return (
+          <button
+            key={o.id}
+            role="tab"
+            aria-selected={on}
+            onClick={() => onChange(o.id)}
+            // The ::after stretches the tap target up to 44px without changing the tab's shape.
+            className={cx(
+              "relative isolate whitespace-nowrap after:absolute after:inset-x-0 after:-top-2.5 after:bottom-0",
+              on ? "h-10" : "h-[34px]",
+              small ? "text-[16px] font-bold" : "font-hand",
+              small ? (on ? "px-[22px] text-ink" : "px-5 text-ink-muted") : on ? "px-6 text-[17px] text-pen max-[359px]:px-[18px]" : "px-[22px] text-[16px] text-folder-text max-[359px]:px-4",
+            )}
+          >
+            {/* The shape is a separate layer so the focus ring on the button is not clipped. */}
+            <span aria-hidden className={cx("absolute inset-0 -z-10", TAB, on ? "bg-manila" : small ? "bg-[#ece3c9]" : "bg-manila-shade")} />
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// An index card for a study item: a handwritten label on the red line, a bold title, then details as a sentence.
+export function Row({ label, title, meta, onClick }: { label?: ReactNode; title: ReactNode; meta?: ReactNode; onClick?: () => void }) {
+  const body = (
+    <>
+      <span className="flex h-7 items-center justify-between gap-3">
+        <span className="font-hand text-[15px] text-ink-muted">{label}</span>
+        {onClick && <ChevronRight size={20} strokeWidth={2} className="shrink-0 text-ink-muted" aria-hidden />}
+      </span>
+      <span className="mt-2 block font-bold">{title}</span>
+      {meta && <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[15px] text-ink-muted">{meta}</span>}
+    </>
+  );
+  const cls = cx("block w-full px-3.5 pt-1 pb-3 text-left", CARD, CARD_LINE);
+  return onClick ? <button onClick={onClick} className={cls}>{body}</button> : <div className={cls}>{body}</div>;
+}
+
+// A field is a line to write on.
 export function Field({ label, type = "text", placeholder, helper, error, defaultValue, trailing }: { label: string; type?: string; placeholder?: string; helper?: string; error?: string; defaultValue?: string; trailing?: ReactNode }) {
   return (
     <label className="block">
-      <span className="block text-[14px] font-medium mb-1.5">{label}</span>
+      <span className="block text-[16px] font-bold">{label}</span>
       <span className="relative block">
         <input
           type={type}
@@ -121,86 +238,97 @@ export function Field({ label, type = "text", placeholder, helper, error, defaul
           defaultValue={defaultValue}
           aria-invalid={!!error}
           className={cx(
-            "w-full h-12 px-3.5 rounded-ctl bg-surface text-[16px] border outline-none transition-colors duration-150 placeholder:text-ink-muted/70",
-            error ? "border-accent border-2" : "border-line focus:border-ink focus:border-2",
-            !!trailing && "pr-16",
+            "block h-11 w-full rounded-none border-0 border-b-2 bg-transparent px-0.5 pt-1.5 pb-0.5 text-[18px] text-ink placeholder:text-[#6e7fa6]",
+            error ? "border-redpen" : "border-field-line",
+            !!trailing && "pr-12",
           )}
         />
-        {trailing && <span className="absolute right-1 top-1/2 -translate-y-1/2">{trailing}</span>}
+        {trailing && <span className="absolute right-0 bottom-0.5">{trailing}</span>}
       </span>
-      {(error || helper) && <span className={cx("block text-[14px] mt-1.5", error ? "text-accent-text" : "text-ink-muted")}>{error ?? helper}</span>}
+      {(error || helper) && <span className={cx("mt-1 block text-[15px]", error ? "text-redpen" : "text-ink-muted")}>{error ?? helper}</span>}
     </label>
   );
 }
 
+// The phone header. It sits in the plain band at the top of the paper; desktop uses the sidebar instead.
 export function AppBar({ back, onClose, title, right }: { back?: Screen; onClose?: () => void; title?: ReactNode; right?: ReactNode }) {
   const { go, openDrawer } = useNav();
+  const big = { size: 24, strokeWidth: 2 };
   return (
-    <header className="sticky top-0 z-20 bg-paper border-b border-line lg:hidden safe-top">
-      <div className="safe-row px-5 flex items-center gap-3">
+    <header className="paper-band safe-top sticky top-0 z-20 lg:hidden">
+      <div className="safe-row flex items-center gap-1.5 pr-5 pl-11">
         {onClose ? (
-          <IconBtn label="Close" onClick={onClose}><X {...ICON} /></IconBtn>
+          <IconBtn label="Close" onClick={onClose}><X {...big} /></IconBtn>
         ) : back ? (
-          <IconBtn label="Back" onClick={() => go(back)}><ChevronLeft {...ICON} /></IconBtn>
+          <IconBtn label="Back" onClick={() => go(back)}><ChevronLeft {...big} /></IconBtn>
         ) : (
-          <IconBtn label="Open menu" onClick={openDrawer}><Menu {...ICON} /></IconBtn>
+          <IconBtn label="Open menu" onClick={openDrawer} className="-ml-2.5"><Menu {...big} /></IconBtn>
         )}
-        <div className="flex-1 min-w-0 flex items-center pl-1 truncate">{title ?? <Wordmark />}</div>
-        {right ?? <Avatar size={32} onClick={() => go("settings")} />}
+        <div className="min-w-0 flex-1 truncate font-hand text-[18px] text-ink-muted">{title ?? (back || onClose ? null : <Wordmark />)}</div>
+        {right ?? <Avatar onClick={() => go("settings")} />}
       </div>
     </header>
   );
 }
 
-export function Avatar({ size = 40, onClick }: { size?: number; onClick?: () => void }) {
+export function Avatar({ size = 44, onClick }: { size?: number; onClick?: () => void }) {
   const el = (
-    <span className="grid place-items-center rounded-full bg-ink text-paper font-semibold" style={{ width: size, height: size, fontSize: size * 0.38 }}>
+    <span className="grid shrink-0 place-items-center rounded-full bg-pen font-bold text-white" style={{ width: size, height: size, fontSize: Math.round(size * 0.34) }}>
       MC
     </span>
   );
   return onClick ? (
-    <button aria-label="Settings" onClick={onClick} className="size-11 grid place-items-center -mx-1.5">{el}</button>
+    <button aria-label="Settings" onClick={onClick} className="grid shrink-0 place-items-center rounded-full">{el}</button>
   ) : el;
 }
 
-export function Page({ children, className, wide }: { children: ReactNode; className?: string; wide?: boolean }) {
-  return <main className={cx("px-5 pt-8 pb-12 mx-auto w-full anim-in", wide ? "lg:max-w-[1040px] lg:px-10 lg:pt-10" : "max-w-[560px] lg:pt-10", className)}>{children}</main>;
+// The content of a screen, placed on the paper's sheet (see .paper in globals.css).
+// `sheet` asks for a narrower sheet, for a form or a page of reading; the paper centers it on wide screens.
+// `fill` stretches a short page to the height of the screen, so a StickyBottom at its end sits at the bottom.
+export function Page({ children, className, fill, sheet }: { children: ReactNode; className?: string; fill?: boolean; sheet?: 560 | 640 }) {
+  return (
+    <main data-sheet={sheet} className={cx("page-x anim-in w-full flex-1 lg:pt-10 lg:pb-16", fill ? "flex flex-col" : "pb-12", className)}>
+      {children}
+    </main>
+  );
 }
 
-export function Title({ children, className }: { children: ReactNode; className?: string }) {
-  return <h1 className={cx("font-serif font-medium text-[28px] leading-8 tracking-[-0.01em]", className)}>{children}</h1>;
+// Handwritten headings. Never add a bold class: Architects Daughter has one weight.
+const TITLE = {
+  page: "text-[34px] leading-[1.2] lg:text-[52px] lg:leading-[1.15]",
+  class: "text-[38px] leading-[1.15] lg:text-[44px]",
+  form: "text-[30px] leading-[1.2] lg:text-[36px]",
+};
+export function Title({ children, className, size = "page" }: { children: ReactNode; className?: string; size?: keyof typeof TITLE }) {
+  return <h1 className={cx("font-hand text-pen", TITLE[size], className)}>{children}</h1>;
 }
 export function H2({ children, className }: { children: ReactNode; className?: string }) {
-  return <h2 className={cx("font-serif font-medium text-[20px] leading-[26px]", className)}>{children}</h2>;
+  return <h2 className={cx("font-hand text-[22px] leading-[1.15] text-pen lg:text-[30px]", className)}>{children}</h2>;
 }
 
+// The main action, kept in reach at the bottom of a phone screen. It needs a parent that is a flex column
+// as tall as the screen (Page with `fill`), and then sits at the bottom even when the page is short.
+// On desktop it is an ordinary block after the content.
 export function StickyBottom({ children }: { children: ReactNode }) {
   return (
-    <div className="sticky bottom-0 z-10 -mx-5 px-5 pt-3 pb-[max(16px,env(safe-area-inset-bottom))] bg-paper border-t border-line mt-8 lg:mx-0 lg:px-0 lg:border-0 lg:bg-transparent">
+    <div className="sticky bottom-0 z-10 mt-auto -mr-5 -ml-11 border-t border-rule pt-5 pr-5 pb-[max(24px,env(safe-area-inset-bottom))] pl-11 max-lg:paper-band lg:static lg:mx-0 lg:mt-8 lg:border-0 lg:p-0">
       {children}
     </div>
   );
 }
 
-export function StreakStrip({ days, muted }: { days: DayState[]; muted?: boolean }) {
+// Seven days: an ink check for a day that was studied, a circle around today.
+export function StreakStrip({ days, muted, className }: { days: DayState[]; muted?: boolean; className?: string }) {
   const L = ["M", "T", "W", "T", "F", "S", "S"];
   return (
-    <ol className="flex justify-between" aria-label="This week">
+    <ol className={cx("grid grid-cols-7 gap-1 text-center", className)} aria-label="This week">
       {days.map((d, i) => (
-        <li key={i} className="flex flex-col items-center gap-1.5">
-          <span className="text-[12px] text-ink-muted font-medium">{L[i]}</span>
-          <span className={cx("relative grid place-items-center size-9", d === "today" && "before:absolute before:inset-x-[-4px] before:inset-y-1 before:bg-marker before:rounded-chip before:-rotate-2")}>
-            <span
-              className={cx(
-                "relative grid place-items-center size-8 rounded-full",
-                d === "done" && (muted ? "border border-line" : "bg-ink text-paper"),
-                d === "missed" && "border-[1.5px] border-ink/40",
-                d === "today" && "border-[1.5px] border-dashed border-ink",
-                d === "future" && "border border-line",
-              )}
-            >
-              {d === "done" && !muted && <Check size={16} strokeWidth={2} />}
-            </span>
+        <li key={i} className="flex flex-col items-center gap-0.5 text-[14px]">
+          <span>{L[i]}</span>
+          <span className="relative grid size-5 place-items-center text-pen">
+            {d === "done" && !muted && <Mark kind="check" />}
+            {d === "today" && <MarkOver kind="circle" size={34} />}
+            {(d === "missed" || d === "future" || (d === "done" && muted)) && <span className={cx("h-0.5 rounded-full bg-ink-muted", d === "missed" ? "w-2.5" : "w-1 opacity-50")} />}
           </span>
           <span className="sr-only">{d}</span>
         </li>
@@ -209,15 +337,17 @@ export function StreakStrip({ days, muted }: { days: DayState[]; muted?: boolean
   );
 }
 
+// A number in handwriting over its label. Put Stats inside a <dl>.
 export function Stat({ value, label }: { value: ReactNode; label: string }) {
   return (
-    <div className="flex-1 py-3">
-      <div className="font-serif font-medium text-[28px] leading-8">{value}</div>
-      <div className="text-[13px] text-ink-muted mt-0.5">{label}</div>
+    <div className="flex flex-col-reverse">
+      <dt className="text-[15px] text-ink-muted">{label}</dt>
+      <dd className="font-hand text-[29px] leading-[1.1] text-pen lg:text-[38px]">{value}</dd>
     </div>
   );
 }
 
+// iMessage previews keep the real bubble colors, because they show the real channel.
 export function Bubble({ from, children }: { from: "me" | "them"; children: ReactNode }) {
   return (
     <div className={cx("flex", from === "me" ? "justify-end" : "justify-start")}>

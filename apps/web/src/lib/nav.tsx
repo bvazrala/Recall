@@ -38,6 +38,6 @@ export function useNav() {
 }
 
 export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
-export const ICON = { size: 20, strokeWidth: 1.5 };
+export const ICON = { size: 20, strokeWidth: 2 };
 
 export type DayState = "done" | "missed" | "today" | "future";

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recall: create account</title>
+<!-- Reference screen for the Recall notebook design. Inline CSS is the exact spec; see design/DESIGN.md. -->
+<link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&amp;family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button,input{font:inherit;color:inherit}
+input::placeholder{color:#6E7FA6}
+:focus-visible{outline:2px solid #1E3F96;outline-offset:3px}
+a{color:#1E3F96}a:hover{color:#142B66}
+</style>
+<style>body{display:flex;justify-content:center;padding:32px 16px;background:#E6E8EC}</style>
+</head>
+<body>
+<div style="width: 390px; height: 844px; box-sizing: border-box; overflow: hidden; padding: 0 20px 24px 44px; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; font-size: 17px; line-height: 1.5; color: #23272E; background: linear-gradient(90deg, transparent 27px, #EFA3A3 27px, #EFA3A3 29px, transparent 29px), linear-gradient(#FDFCF8, #FDFCF8) 0 0 / 100% 88px no-repeat, repeating-linear-gradient(180deg, transparent 0 31px, #D6E2F3 31px 32px) 0 88px / 100% 100% no-repeat, #FDFCF8;">
+
+<header style="height: 88px; display: flex; align-items: center;">
+<a href="#" aria-label="Back" style="width: 44px; height: 44px; margin-left: -12px; display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="#23272E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+<a href="#" style="margin-left: auto; min-height: 44px; display: flex; align-items: center; color: #1E3F96; font-weight: 700;">Log in</a>
+</header>
+
+<h1 style="margin: 6px 0 0; font-family: 'Architects Daughter', cursive; font-weight: 400; font-size: 30px; line-height: 1.2; color: #1E3F96;">Create your account</h1>
+<p style="margin: 10px 0 0;">Recall texts you on iMessage, so use your iPhone number.</p>
+
+<form style="margin: 24px 0 0; display: flex; flex-direction: column; gap: 16px;">
+<div>
+<label for="su-name" style="display: block; font-weight: 700; font-size: 0.94em;">Name</label>
+<input id="su-name" type="text" autocomplete="name" placeholder="Maya Chen" style="display: block; width: 100%; box-sizing: border-box; height: 44px; padding: 6px 2px 2px; border: 0; border-bottom: 2px solid #6F86B8; border-radius: 0; background: transparent; font-size: 1.06em; color: #23272E;">
+</div>
+<div>
+<label for="su-email" style="display: block; font-weight: 700; font-size: 0.94em;">Email</label>
+<input id="su-email" type="email" autocomplete="email" placeholder="maya.chen@example.edu" style="display: block; width: 100%; box-sizing: border-box; height: 44px; padding: 6px 2px 2px; border: 0; border-bottom: 2px solid #6F86B8; border-radius: 0; background: transparent; font-size: 1.06em; color: #23272E;">
+</div>
+<div>
+<label for="su-phone" style="display: block; font-weight: 700; font-size: 0.94em;">Mobile number</label>
+<input id="su-phone" type="tel" autocomplete="tel" placeholder="+1 (555) 010-0142" aria-describedby="su-phone-help" style="display: block; width: 100%; box-sizing: border-box; height: 44px; padding: 6px 2px 2px; border: 0; border-bottom: 2px solid #6F86B8; border-radius: 0; background: transparent; font-size: 1.06em; color: #23272E;">
+<p id="su-phone-help" style="margin: 4px 0 0; font-size: 0.88em; color: #5B616B;">Your daily question arrives here.</p>
+</div>
+<div>
+<label for="su-password" style="display: block; font-weight: 700; font-size: 0.94em;">Password</label>
+<div style="position: relative;">
+<input id="su-password" type="password" autocomplete="new-password" aria-describedby="su-password-help" style="display: block; width: 100%; box-sizing: border-box; height: 44px; padding: 6px 48px 2px 2px; border: 0; border-bottom: 2px solid #6F86B8; border-radius: 0; background: transparent; font-size: 1.06em; color: #23272E;">
+<button type="button" aria-label="Show password" style="position: absolute; right: 0; bottom: 2px; width: 44px; height: 42px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; cursor: pointer;"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z" fill="none" stroke="#5B616B" stroke-width="1.8" stroke-linejoin="round"></path><circle cx="12" cy="12" r="3" fill="none" stroke="#5B616B" stroke-width="1.8"></circle></svg></button>
+</div>
+<p id="su-password-help" style="margin: 4px 0 0; font-size: 0.88em; color: #5B616B;">At least 8 characters.</p>
+</div>
+<button type="submit" style="position: relative; display: block; width: 100%; min-height: 52px; margin-top: 18px; padding: 14px 20px; border: 0; border-radius: 0 10px 10px 10px; background: #1E3F96; color: #FFFFFF; font-weight: 700; font-size: 1em; cursor: pointer; box-shadow: 0 3px 0 rgba(17, 30, 66, 0.4);"><span aria-hidden="true" style="position: absolute; left: 0; top: -11px; width: 96px; height: 12px; background: #1E3F96; clip-path: polygon(0 100%, 12% 0, 88% 0, 100% 100%);"></span>Create account</button>
+</form>
+
+<p style="margin: 18px 0 0; font-size: 0.82em; color: #5B616B;">By creating an account you agree to the <a href="#" style="color: #1E3F96;">Terms</a> and <a href="#" style="color: #1E3F96;">Privacy Policy</a>, and to one text a day. Reply STOP anytime.</p>
+</div>
+</body>
+</html>

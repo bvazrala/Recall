@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { AppBar, Button, Card, Label, Page, Title } from "@/components/ui";
+import { AppBar, Button, Folder, H2, Page, Row, Title } from "@/components/ui";
 import { LoadError, Loading } from "@/components/load-state";
 import { useDay } from "@/components/day-context";
 import { cardCount } from "@/lib/day-data";
@@ -22,39 +22,36 @@ export function Flashcards() {
   return (
     <>
       <AppBar />
-      <Page wide>
-        <Title>Flashcards</Title>
+      <Page>
+        <Title className="pt-3.5 lg:pt-0">Flashcards</Title>
         {error ? <div className="mt-6"><LoadError error={error} /></div> : loading || !data ? <Loading className="mt-6 h-24" /> : (
-          <>
-            <Card className="mt-6 p-5 flex items-center gap-4 flex-wrap">
-              <div className="flex-1"><span className="font-serif font-medium text-[32px] leading-none">{total}</span> <span className="text-[16px]">due today</span></div>
-              <Button className="w-full sm:w-auto" disabled={total === 0} onClick={() => go("study")}>Study due cards</Button>
-            </Card>
-            <section className="mt-8">
-              <Label>Today&apos;s topics</Label>
+          <div className="lg:mt-10 lg:flex lg:flex-wrap lg:items-start lg:gap-x-14 lg:gap-y-12">
+            <Folder tab="Today" className="mt-[21px] min-w-0 lg:mt-0 lg:flex-[1_1_360px]">
+              <p className="flex items-baseline gap-2.5"><span className="font-hand text-[42px] leading-none text-pen lg:text-[62px] lg:leading-[0.95]">{total}</span>{total === 1 ? "card" : "cards"} due today</p>
+              <Button full className="mt-[30px] lg:mt-8" disabled={total === 0} onClick={() => go("study")}>Study due cards</Button>
+            </Folder>
+            <section className="mt-9 min-w-0 lg:mt-2 lg:flex-[2_1_480px]">
+              <H2>Today&apos;s topics</H2>
               {data.topics.length === 0 ? (
-                <p className="mt-3 text-[16px] text-ink-muted">No topics yet. Add a class to build your first deck.</p>
+                <>
+                  <p className="mt-3 font-hand text-[18px] leading-[1.4] text-ink-muted">No topics yet. Add a class to build your first deck.</p>
+                  <Button variant="secondary" className="mt-7" onClick={() => go("add-class")}>Add a class</Button>
+                </>
               ) : (
-                <ul className="mt-2 border-t border-line">
+                <ul className="mt-3 grid gap-3 lg:mt-4 lg:gap-4 xl:grid-cols-2">
                   {data.topics.map((t) => {
-                    const { fresh, learning, review } = tally(data.cards[t.topicId] ?? []);
+                    const cards = data.cards[t.topicId] ?? [];
+                    const { fresh, learning, review } = tally(cards);
                     return (
-                      <li key={t.topicId} className="border-b border-line">
-                        <button onClick={() => router.push(`/flashcards/study?topic=${t.topicId}`)} className="w-full flex items-center gap-3 py-3.5 min-h-14 text-left">
-                          <span className="flex-1 text-[16px]">{t.name}</span>
-                          <span className="flex gap-3 text-[12px] text-right">
-                            <span className="text-ink-muted"><span className="mono text-[14px] block">{fresh}</span>New</span>
-                            <span className="text-accent-text"><span className="mono text-[14px] block">{learning}</span>Learning</span>
-                            <span className="text-good"><span className="mono text-[14px] block">{review}</span>Due</span>
-                          </span>
-                        </button>
+                      <li key={t.topicId}>
+                        <Row label={cards.length === 1 ? "1 card" : `${cards.length} cards`} title={t.name} meta={`${fresh} new, ${learning} learning, ${review} due.`} onClick={() => router.push(`/flashcards/study?topic=${t.topicId}`)} />
                       </li>
                     );
                   })}
                 </ul>
               )}
             </section>
-          </>
+          </div>
         )}
       </Page>
     </>

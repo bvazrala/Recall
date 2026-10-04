@@ -1,47 +1,51 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronDown, X } from "lucide-react";
-import { AppBar, Bar, Button, Card, Chip, H2, IconBtn, Label, Page, Segmented, StickyBottom, Title } from "@/components/ui";
+import { ChevronDown, X } from "lucide-react";
+import { AppBar, Bar, Button, Card, Chip, Dialog, Folder, FolderPanel, H2, IconBtn, Mark, MarkOver, Page, Segmented, StickyBottom, Title } from "@/components/ui";
 import { ICON, cx, useNav } from "@/lib/nav";
 import { PAST_QUIZZES, QUESTION as Q, QUIZ_REVIEW } from "@/lib/mock";
 
 // Quizzes have no server routes yet, so every screen here runs on placeholder data (see lib/mock.ts).
+
+// The printed sheet a quiz is written on: an index card without the red line.
+const SHEET = "rounded-[3px] bg-surface shadow-[0_1px_0_var(--color-line),0_10px_20px_-14px_rgba(30,63,150,0.55)]";
+// A letter or number in the left column of a sheet, with room for a mark drawn over it.
+const SLOT = "relative w-7 shrink-0 text-center font-bold";
 
 export function Quizzes() {
   const { go } = useNav();
   return (
     <>
       <AppBar />
-      <Page wide>
-        <Title>Quizzes</Title>
-        <div className="mt-6 lg:grid lg:grid-cols-[2fr_1fr] lg:gap-0">
-          <div className="lg:pr-10">
-            <Card className="p-5 lg:p-8">
-              <Label>Today&apos;s quiz</Label>
-              <h2 className="font-serif font-medium text-[24px] leading-[30px] mt-2 lg:text-[32px] lg:leading-9">Glycolysis and the Krebs cycle</h2>
-              <p className="mono text-[14px] text-ink-muted mt-2">10 questions · about 6 min</p>
-              <div className="flex gap-2 mt-3"><Chip>Glycolysis</Chip><Chip>Krebs cycle</Chip></div>
-              <div className="mt-5 flex items-center gap-3"><Bar value={0} className="flex-1" /><span className="text-[14px] text-ink-muted">Not started</span></div>
-              <Button full className="mt-5 lg:w-auto lg:px-10" onClick={() => go("question")}>Start quiz</Button>
-            </Card>
-          </div>
-          <aside className="mt-10 lg:mt-0 lg:pl-10 lg:border-l lg:border-line lg:sticky lg:top-10 lg:self-start">
+      <Page>
+        <Title className="pt-3.5 lg:pt-0">Quizzes</Title>
+        <div className="lg:mt-10 lg:flex lg:flex-wrap lg:items-start lg:gap-x-14 lg:gap-y-12">
+          <Folder tab="Today's quiz" className="mt-[21px] min-w-0 lg:mt-0 lg:flex-[2_1_480px]">
+            <h2 className="font-hand text-[24px] leading-[1.25] text-pen lg:text-[35px] lg:leading-[1.2]">Glycolysis and the Krebs cycle</h2>
+            <p className="mt-2 lg:mt-2.5 lg:text-[18px]">10 questions, about 6 minutes.</p>
+            <div className="mt-3.5 flex flex-wrap gap-2 lg:mt-4 lg:gap-2.5"><Chip>Glycolysis</Chip><Chip>Krebs cycle</Chip></div>
+            <div className="mt-5 flex items-center gap-3"><Bar value={0} className="flex-1" /><span className="text-[15px] text-folder-text">Not started yet</span></div>
+            <Button full className="mt-[30px] lg:mt-8 lg:w-auto lg:min-w-[260px] lg:px-8" onClick={() => go("question")}>Start quiz</Button>
+          </Folder>
+          <aside className="mt-10 min-w-0 lg:mt-2 lg:flex-[1_1_300px]">
             <H2>Past quizzes</H2>
-            <ul className="mt-3 border-t border-line">
-              {PAST_QUIZZES.map((p) => (
-                <li key={p.date} className="border-b border-line">
-                  <button onClick={() => go("past-quiz")} className="w-full text-left py-3.5 min-h-14">
-                    <div className="flex items-baseline gap-3">
-                      <span className="mono text-[13px] text-ink-muted w-[84px] shrink-0">{p.date}</span>
-                      <span className="flex-1 text-[16px]">{p.topic}</span>
-                      <span className="mono text-[14px]">{p.s}/10</span>
-                    </div>
-                    <Bar value={p.s * 10} tone={p.s >= 8 ? "good" : "ink"} className="mt-2 ml-[96px]" />
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <Card className="mt-3">
+              <ul className="divide-y divide-line">
+                {PAST_QUIZZES.map((p) => (
+                  <li key={p.date}>
+                    <button onClick={() => go("past-quiz")} className="block w-full px-3.5 py-3 text-left">
+                      <span className="flex items-baseline gap-3">
+                        <span className="flex-1 font-bold">{p.topic}</span>
+                        <span className="font-hand text-[19px] leading-none text-pen">{p.s}/10</span>
+                      </span>
+                      <span className="block text-[15px] text-ink-muted">{p.date}</span>
+                      <Bar value={p.s * 10} className="mt-2" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </Card>
           </aside>
         </div>
       </Page>
@@ -49,92 +53,101 @@ export function Quizzes() {
   );
 }
 
-type AnswerState = "idle" | "selected" | "correct" | "wrong" | "reveal";
-
-function AnswerRow({ letter, text, state, onClick }: { letter: string; text: string; state: AnswerState; onClick?: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={!onClick}
-      className={cx(
-        "w-full min-h-14 flex items-center gap-3 px-4 rounded-ctl bg-surface text-left transition-colors duration-150",
-        state === "idle" && "border border-line",
-        state === "selected" && "border-2 border-ink",
-        (state === "correct" || state === "reveal") && "border-2 border-good",
-        state === "wrong" && "border-2 border-accent",
-      )}
-    >
-      <span className="mono text-[14px] text-ink-muted w-4">{letter}</span>
-      <span className="flex-1 text-[16px]">{text}</span>
-      {(state === "correct" || state === "reveal") && <Check {...ICON} className="text-good" aria-label="Correct" />}
-      {state === "wrong" && <X {...ICON} className="text-accent" aria-label="Incorrect" />}
-    </button>
-  );
-}
+// Filled progress dashes are drawn by hand, so each one tilts a little.
+const TILT = ["-rotate-[5deg]", "rotate-[4deg]", "-rotate-[3deg]", "rotate-[5deg]"];
 
 export function Question() {
   const { go } = useNav();
   const [sel, setSel] = useState<number | null>(null);
   const [checked, setChecked] = useState(false);
   const [confirm, setConfirm] = useState(false);
+  const right = sel === Q.correct;
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-20 bg-paper px-5 max-w-[640px] w-full mx-auto safe-top">
-        <div className="safe-row flex items-center gap-4">
-          <IconBtn label="Exit quiz" onClick={() => setConfirm(true)}><X {...ICON} /></IconBtn>
-          <div className="flex-1 grid grid-cols-10 gap-1" aria-label="Question 4 of 10">
-            {Array.from({ length: 10 }, (_, i) => <span key={i} className={cx("h-1 rounded-chip", i < 3 ? "bg-ink" : i === 3 ? "bg-accent" : "bg-ink/15")} />)}
+    <div className="paper flex min-h-screen flex-col lg:[--sheet:640px]">
+      <header className="paper-band page-x safe-top sticky top-0 z-20">
+        <div className="safe-row flex items-center gap-3">
+          <IconBtn label="Exit quiz" onClick={() => setConfirm(true)}><X size={24} strokeWidth={2} /></IconBtn>
+          <div className="flex min-w-0 flex-1 items-center gap-[5px]" aria-hidden>
+            {Array.from({ length: 10 }, (_, i) => <span key={i} className={cx("h-1 w-[17px] rounded-[2px]", i < 4 ? cx("bg-pen", TILT[i % TILT.length]) : "bg-[#c6d4ea]")} />)}
           </div>
+          <p className="shrink-0 font-hand text-[17px] text-ink-muted"><span className="sr-only">Question </span>4 of 10</p>
         </div>
       </header>
-      <main className="flex-1 px-5 pt-7 pb-12 max-w-[640px] w-full mx-auto anim-in">
-        <p className="mono text-[13px] text-ink-muted">Question 4 of 10</p>
-        <h1 className="font-serif font-medium text-[24px] leading-[30px] mt-2">{Q.prompt}</h1>
-        <div className="mt-6 space-y-2.5">
-          {Q.options.map((o, i) => {
-            let st: AnswerState = sel === i ? "selected" : "idle";
-            if (checked) st = i === Q.correct ? (sel === i ? "correct" : "reveal") : sel === i ? "wrong" : "idle";
-            return <AnswerRow key={o} letter={"ABCD"[i]} text={o} state={st} onClick={checked ? undefined : () => setSel(i)} />;
-          })}
+      <main className="page-x anim-in flex flex-1 flex-col lg:pb-16">
+        <div className={cx("mt-2 px-4 pt-5 pb-1.5", SHEET)}>
+          <h1 className="text-[22px] leading-[1.35] font-bold">{Q.prompt}</h1>
+          <ol className="mt-3">
+            {Q.options.map((o, i) => {
+              const picked = sel === i;
+              const correct = checked && i === Q.correct;
+              // Before checking, the student circles a choice. After, the circle marks the right answer
+              // and a red X goes through a wrong pick.
+              const circled = checked ? correct : picked;
+              return (
+                <li key={o} className="border-t border-[#e6ecf5]">
+                  <button onClick={() => setSel(i)} disabled={checked} aria-pressed={checked ? undefined : picked} className="flex min-h-[54px] w-full items-center gap-3.5 text-left">
+                    <span className={cx(SLOT, circled ? "text-ink" : "text-ink-muted")}>
+                      {"ABCD"[i]}
+                      {circled && <MarkOver kind="circle" size={40} className="text-pen" />}
+                      {checked && picked && !correct && <MarkOver kind="cross" size={30} className="text-redpen" />}
+                    </span>
+                    <span className={cx("min-w-0 flex-1 [overflow-wrap:anywhere]", circled && "font-bold")}>{o}</span>
+                    {checked && picked && !correct && <span className="shrink-0 font-hand text-[15px] text-redpen"><span className="sr-only">Incorrect, </span>your answer</span>}
+                    {correct && <Mark kind="check" label={picked ? "Correct, your answer" : "Correct answer"} className="text-pen" />}
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
         </div>
         {checked && (
-          <div className="mt-5 p-4 rounded-card bg-surface border border-line anim-in">
-            <Label className={sel === Q.correct ? "!text-good" : "!text-accent-text"}>{sel === Q.correct ? "Correct" : "Not quite"}</Label>
-            <p className="text-[15px] leading-6 mt-1.5">{Q.why}</p>
+          <div className="anim-in mt-[22px]">
+            <p className={cx("font-hand text-[25px] leading-[1.15]", right ? "text-pen" : "text-redpen")}>{right ? "Correct." : "Not quite."}</p>
+            <p className="mt-2">{Q.why}</p>
           </div>
         )}
         <StickyBottom>
-          {!checked ? <Button full disabled={sel === null} onClick={() => setChecked(true)}>Check answer</Button> : <Button full onClick={() => go("results")}>Next</Button>}
+          {!checked ? <Button full disabled={sel === null} onClick={() => setChecked(true)}>Check answer</Button> : <Button full onClick={() => go("results")}>Next question</Button>}
         </StickyBottom>
       </main>
       {confirm && (
-        <div className="fixed inset-0 z-50 bg-ink/40 flex items-end sm:items-center justify-center p-4" onClick={() => setConfirm(false)}>
-          <div className="w-full max-w-[380px] bg-surface rounded-card p-5 anim-in" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal>
-            <H2>Leave this quiz?</H2>
-            <p className="text-[15px] text-ink-muted mt-2">Your answers so far are saved. You can resume from question 4.</p>
-            <div className="mt-5 grid grid-cols-2 gap-3"><Button variant="secondary" onClick={() => setConfirm(false)}>Keep going</Button><Button onClick={() => go("quizzes")}>Leave</Button></div>
-          </div>
-        </div>
+        <Dialog title="Leave this quiz?" onClose={() => setConfirm(false)}>
+          <p className="mt-2 text-ink-muted">Your answers so far are saved. You can resume from question 4.</p>
+          <div className="mt-7 grid grid-cols-2 gap-3"><Button variant="secondary" onClick={() => setConfirm(false)}>Keep going</Button><Button onClick={() => go("quizzes")}>Leave</Button></div>
+        </Dialog>
       )}
     </div>
   );
 }
 
+const MISSED = [
+  [4, "Which enzyme catalyzes the committed step of glycolysis?"],
+  [7, "How many NADH does glycolysis produce per glucose?"],
+] as const;
+
+// A graded sheet: the score in handwriting, and red pen only on the misses.
 export function Results() {
   const { go } = useNav();
   return (
     <>
-      <AppBar onClose={() => go("quizzes")} title={<span className="font-medium">Results</span>} right={<span className="w-6" />} />
-      <Page>
-        <Label>Glycolysis and the Krebs cycle</Label>
-        <div className="font-serif font-medium text-[72px] leading-[72px] mt-3">8<span className="text-ink-muted">/10</span></div>
-        <p className="text-[16px] mt-3">You missed 2, both from Glycolysis.</p>
-        <ul className="mt-6 border-t border-line">
-          {["Which enzyme catalyzes the committed step of glycolysis?", "How many NADH does glycolysis produce per glucose?"].map((q, i) => (
-            <li key={q} className="py-3.5 border-b border-line flex gap-3"><X {...ICON} className="text-accent shrink-0 mt-0.5" aria-label="Missed" /><span className="mono text-[13px] text-ink-muted pt-0.5">Q{[4, 7][i]}</span><span className="text-[15px]">{q}</span></li>
-          ))}
-        </ul>
-        <div className="mt-8 flex flex-col gap-1">
+      <AppBar onClose={() => go("quizzes")} title="Results" right={<span className="w-11" />} />
+      <Page sheet={560}>
+        <div className={cx("mt-2 px-4 pt-5 pb-1.5 lg:mt-0", SHEET)}>
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="text-[22px] leading-[1.35] font-bold">Glycolysis and the Krebs cycle</h1>
+            <p className="shrink-0 font-hand text-[52px] leading-[0.9] text-pen" aria-label="8 out of 10">8<span className="text-[30px]">/10</span></p>
+          </div>
+          <p className="mt-3">You missed 2, both from Glycolysis.</p>
+          <ul className="mt-3">
+            {MISSED.map(([n, q]) => (
+              <li key={n} className="flex min-h-[54px] items-center gap-3.5 border-t border-[#e6ecf5] py-2">
+                <span className={cx(SLOT, "text-ink-muted")}><span className="sr-only">Missed question </span>{n}<MarkOver kind="cross" size={30} className="text-redpen" /></span>
+                <span>{q}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="mt-8 flex flex-col gap-2">
           <Button full onClick={() => go("past-quiz")}>Review answers</Button>
           <Button variant="text" onClick={() => go("quizzes")}>Back to quizzes</Button>
         </div>
@@ -149,35 +162,55 @@ export function PastQuiz() {
   const list = QUIZ_REVIEW.map((r, i) => ({ ...r, i })).filter((r) => f === "all" || !r.ok);
   return (
     <>
-      <AppBar back="quizzes" title={<span className="font-medium">Review</span>} />
-      <Page>
-        <div className="flex items-baseline justify-between gap-4">
-          <h1 className="font-serif font-medium text-[22px] leading-7"><span className="mono text-[15px] text-ink-muted block">Sat, Oct 3</span>Cell membranes</h1>
-          <span className="font-serif font-medium text-[32px]">9/10</span>
+      <AppBar back="quizzes" title="Review" />
+      <Page sheet={640}>
+        <div className="flex items-end justify-between gap-4 pt-1.5 lg:pt-0">
+          <div>
+            <p className="font-hand text-[18px] leading-[1.3] text-ink-muted">Sat, Oct 3</p>
+            <Title size="form">Cell membranes</Title>
+          </div>
+          <p className="shrink-0 font-hand text-[38px] leading-[1.1] text-pen" aria-label="9 out of 10">9/10</p>
         </div>
-        <Segmented className="mt-5" value={f} onChange={setF} options={[{ id: "all", label: "All 10" }, { id: "missed", label: "Missed 1" }]} />
-        <ul className="mt-5 space-y-3">
-          {list.map((r) => {
-            const isOpen = open.has(r.i);
-            return (
-              <li key={r.i}><Card>
-                <button className="w-full flex gap-3 p-4 text-left min-h-14" aria-expanded={isOpen} onClick={() => { const n = new Set(open); if (isOpen) n.delete(r.i); else n.add(r.i); setOpen(n); }}>
-                  <span className="mono text-[13px] text-ink-muted pt-0.5">{String(r.i + 1).padStart(2, "0")}</span>
-                  <span className="flex-1 text-[16px]">{r.p}</span>
-                  {r.ok ? <Check {...ICON} className="text-good shrink-0" aria-label="Correct" /> : <X {...ICON} className="text-accent shrink-0" aria-label="Missed" />}
-                  <ChevronDown {...ICON} className={cx("shrink-0 text-ink-muted transition-transform duration-200", isOpen && "rotate-180")} />
-                </button>
-                {isOpen && (
-                  <div className="px-4 pb-4 pl-[52px] space-y-2 text-[15px] anim-in">
-                    <div><Label className="!text-[11px]">Your answer</Label><div className={cx("flex items-center gap-2", !r.ok && "text-accent-text")}>{r.ok ? <Check size={16} className="text-good" /> : <X size={16} />}{r.you}</div></div>
-                    {!r.ok && <div><Label className="!text-[11px]">Correct answer</Label><div className="flex items-center gap-2"><Check size={16} className="text-good" />{r.right}</div></div>}
-                    {r.why && <p className="text-ink-muted leading-6 pt-1">{r.why}</p>}
-                  </div>
-                )}
-              </Card></li>
-            );
-          })}
-        </ul>
+        <div className="mt-6">
+          <Segmented value={f} onChange={setF} options={[{ id: "all", label: "All 10" }, { id: "missed", label: "Missed 1" }]} />
+          <FolderPanel>
+            <ul className="flex flex-col gap-3">
+              {list.map((r) => {
+                const isOpen = open.has(r.i);
+                return (
+                  <li key={r.i}>
+                    <div className={SHEET}>
+                      <button className="flex min-h-14 w-full items-center gap-3 py-3 pr-3 pl-2.5 text-left" aria-expanded={isOpen} onClick={() => { const n = new Set(open); if (isOpen) n.delete(r.i); else n.add(r.i); setOpen(n); }}>
+                        <span className={cx(SLOT, "text-ink-muted")}>{r.i + 1}{!r.ok && <MarkOver kind="cross" size={30} className="text-redpen" />}</span>
+                        <span className="flex-1">{r.p}</span>
+                        {r.ok ? <Mark kind="check" label="Correct" className="text-pen" /> : <span className="sr-only">Missed</span>}
+                        <ChevronDown {...ICON} className={cx("shrink-0 text-ink-muted transition-transform duration-200", isOpen && "rotate-180")} />
+                      </button>
+                      {isOpen && (
+                        <div className="anim-in pr-3 pb-4 pl-[50px]">
+                          <ul className="border-t border-[#e6ecf5]">
+                            <li className="flex min-h-11 items-center gap-2 py-1.5">
+                              <span className={cx("flex-1", r.ok && "font-bold")}>{r.you}</span>
+                              <span className={cx("shrink-0 font-hand text-[15px]", r.ok ? "text-pen" : "text-redpen")}>your answer</span>
+                              {r.ok ? <Mark kind="check" size={18} className="text-pen" /> : <Mark kind="cross" size={18} label="Incorrect" className="text-redpen" />}
+                            </li>
+                            {!r.ok && (
+                              <li className="flex min-h-11 items-center gap-2 border-t border-[#e6ecf5] py-1.5">
+                                <span className="flex-1 font-bold">{r.right}</span>
+                                <Mark kind="check" size={18} label="Correct answer" className="text-pen" />
+                              </li>
+                            )}
+                          </ul>
+                          {r.why && <p className="pt-2 text-[15px] text-ink-muted">{r.why}</p>}
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </FolderPanel>
+        </div>
       </Page>
     </>
   );

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recall: quiz feedback</title>
+<!-- Reference screen for the Recall notebook design. Inline CSS is the exact spec; see design/DESIGN.md. -->
+<link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&amp;family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid #1E3F96;outline-offset:3px}
+a{color:#1E3F96}a:hover{color:#142B66}
+</style>
+<style>body{display:flex;justify-content:center;padding:32px 16px;background:#E6E8EC}</style>
+</head>
+<body>
+<div style="width: 390px; height: 844px; box-sizing: border-box; overflow: hidden; padding: 0 20px 24px 44px; display: flex; flex-direction: column; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; font-size: 17px; line-height: 1.5; color: #23272E; background: linear-gradient(90deg, transparent 27px, #EFA3A3 27px, #EFA3A3 29px, transparent 29px), linear-gradient(#FDFCF8, #FDFCF8) 0 0 / 100% 88px no-repeat, repeating-linear-gradient(180deg, transparent 0 31px, #D6E2F3 31px 32px) 0 88px / 100% 100% no-repeat, #FDFCF8;">
+
+<header style="height: 88px; flex: 0 0 auto; display: flex; align-items: center; gap: 12px;">
+<a href="phone-class.html" aria-label="End quiz" style="width: 44px; height: 44px; margin-left: -12px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="#23272E" stroke-width="2" stroke-linecap="round"></path></svg></a>
+<div aria-hidden="true" style="flex: 1 1 auto; display: flex; align-items: center; gap: 5px;">
+<span style="width: 17px; height: 4px; border-radius: 2px; background: #1E3F96; transform: rotate(-5deg);"></span>
+<span style="width: 17px; height: 4px; border-radius: 2px; background: #1E3F96; transform: rotate(4deg);"></span>
+<span style="width: 17px; height: 4px; border-radius: 2px; background: #1E3F96; transform: rotate(-3deg);"></span>
+<span style="width: 17px; height: 4px; border-radius: 2px; background: #1E3F96; transform: rotate(5deg);"></span>
+<span style="width: 17px; height: 4px; border-radius: 2px; background: #C6D4EA;"></span>
+<span style="width: 17px; height: 4px; border-radius: 2px; background: #C6D4EA;"></span>
+<span style="width: 17px; height: 4px; border-radius: 2px; background: #C6D4EA;"></span>
+<span style="width: 17px; height: 4px; border-radius: 2px; background: #C6D4EA;"></span>
+<span style="width: 17px; height: 4px; border-radius: 2px; background: #C6D4EA;"></span>
+<span style="width: 17px; height: 4px; border-radius: 2px; background: #C6D4EA;"></span>
+</div>
+<p style="margin: 0; flex: 0 0 auto; font-family: 'Architects Daughter', cursive; font-weight: 400; font-size: 17px; color: #5B616B;">4 of 10</p>
+</header>
+
+<div style="margin-top: 8px; padding: 20px 16px 6px; background: #FFFFFF; border-radius: 3px; box-shadow: 0 1px 0 #E3E6EC, 0 10px 20px -14px rgba(30, 63, 150, 0.55);">
+<h1 style="margin: 0; font-size: 1.3em; line-height: 1.35; font-weight: 700;">Which enzyme catalyzes the committed step of glycolysis?</h1>
+<ol style="list-style: none; margin: 12px 0 0; padding: 0;">
+<li style="display: flex; align-items: center; gap: 14px; min-height: 54px; border-top: 1px solid #E6ECF5;"><span style="width: 28px; text-align: center; font-weight: 700; color: #5B616B;">A</span><span>Hexokinase</span></li>
+<li style="display: flex; align-items: center; gap: 14px; min-height: 54px; border-top: 1px solid #E6ECF5;"><span style="position: relative; width: 28px; text-align: center; font-weight: 700; color: #23272E;">B<svg aria-hidden="true" width="40" height="38" viewBox="0 0 40 38" style="position: absolute; left: 50%; top: 50%; margin: -19px 0 0 -20px;"><path d="M21 3.2C30.6 2.8 37.6 9 37.2 18.6 36.8 28.2 29.2 34.8 19.8 34.6 10.4 34.4 2.8 27.6 3 18.6 3.2 9.6 10.4 3.4 19.6 4.2" fill="none" stroke="#1E3F96" stroke-width="2" stroke-linecap="round"></path></svg></span><span style="font-weight: 700;">Phosphofructokinase-1</span><svg aria-label="Correct answer" role="img" width="20" height="20" viewBox="0 0 24 24" style="margin-left: auto; flex: 0 0 auto;"><path d="M4.5 13.2c2 1.6 3.4 3.3 4.6 5.3C11.8 12.6 15.4 8 20 4.6" fill="none" stroke="#1E3F96" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></li>
+<li style="display: flex; align-items: center; gap: 14px; min-height: 54px; border-top: 1px solid #E6ECF5;"><span style="width: 28px; text-align: center; font-weight: 700; color: #5B616B;">C</span><span>Pyruvate kinase</span></li>
+<li style="display: flex; align-items: center; gap: 14px; min-height: 54px; border-top: 1px solid #E6ECF5;"><span style="position: relative; width: 28px; text-align: center; font-weight: 700; color: #5B616B;">D<svg aria-hidden="true" width="30" height="30" viewBox="0 0 24 24" style="position: absolute; left: 50%; top: 50%; margin: -15px 0 0 -15px;"><path d="M5 4.6c4.6 4.4 9.2 9.6 14 14.8M18.8 4.8C13.6 9.4 9.2 14.2 4.6 19.4" fill="none" stroke="#C9302C" stroke-width="2.4" stroke-linecap="round"></path></svg></span><span>Aldolase</span><span style="margin-left: auto; font-family: 'Architects Daughter', cursive; font-weight: 400; font-size: 15px; color: #C9302C;">your answer</span></li>
+</ol>
+</div>
+
+<div style="margin-top: 22px;">
+<p style="margin: 0; font-family: 'Architects Daughter', cursive; font-weight: 400; font-size: 25px; line-height: 1.15; color: #C9302C;">Not quite.</p>
+<p style="margin: 8px 0 0;">PFK-1 turns fructose-6-phosphate into fructose-1,6-bisphosphate. After that step the molecule can only continue down glycolysis, so it is the main control point.</p>
+<p style="margin: 8px 0 0;">Aldolase works one step later, splitting fructose-1,6-bisphosphate in two.</p>
+<p style="margin: 10px 0 0; display: flex; align-items: center; gap: 6px; font-size: 0.88em; color: #5B616B;"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24"><path d="M20.5 11.6l-8.2 8.2a5.2 5.2 0 0 1-7.4-7.4l8.6-8.6a3.4 3.4 0 0 1 4.8 4.8l-8.4 8.4a1.7 1.7 0 0 1-2.4-2.4l7.6-7.6" fill="none" stroke="#5B616B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>From your notes: Lecture 5, slide 14</p>
+</div>
+
+<button type="button" style="position: relative; display: block; width: 100%; min-height: 52px; margin-top: auto; padding: 14px 20px; border: 0; border-radius: 0 10px 10px 10px; background: #1E3F96; color: #FFFFFF; font-weight: 700; font-size: 1em; cursor: pointer; box-shadow: 0 3px 0 rgba(17, 30, 66, 0.4);"><span aria-hidden="true" style="position: absolute; left: 0; top: -11px; width: 96px; height: 12px; background: #1E3F96; clip-path: polygon(0 100%, 12% 0, 88% 0, 100% 100%);"></span>Next question</button>
+</div>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recall: Cell Biology</title>
+<!-- Reference screen for the Recall notebook design. Inline CSS is the exact spec; see design/DESIGN.md. -->
+<link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&amp;family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid #1E3F96;outline-offset:3px}
+a{color:#1E3F96}a:hover{color:#142B66}
+</style>
+<style>body{display:flex;justify-content:center;padding:32px 16px;background:#E6E8EC}</style>
+</head>
+<body>
+<div style="width: 390px; height: 844px; box-sizing: border-box; overflow: hidden; padding: 0 20px 24px 44px; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; font-size: 17px; line-height: 1.5; color: #23272E; background: linear-gradient(90deg, transparent 27px, #EFA3A3 27px, #EFA3A3 29px, transparent 29px), linear-gradient(#FDFCF8, #FDFCF8) 0 0 / 100% 88px no-repeat, repeating-linear-gradient(180deg, transparent 0 31px, #D6E2F3 31px 32px) 0 88px / 100% 100% no-repeat, #FDFCF8;">
+
+<header style="height: 88px; display: flex; align-items: center;">
+<a href="phone-home.html" aria-label="Back to home" style="width: 44px; height: 44px; margin-left: -12px; display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="#23272E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+<a href="#" aria-label="Your profile" style="margin-left: auto; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #1E3F96; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 15px;">MC</a>
+</header>
+
+<span style="display: inline-flex; align-items: center; height: 28px; padding: 0 18px; background: #2B7A4B; color: #FFFFFF; font-weight: 700; font-size: 14px; clip-path: polygon(0 100%, 10% 0, 90% 0, 100% 100%);">BIOL 2210</span>
+<h1 style="margin: 6px 0 0; font-family: 'Architects Daughter', cursive; font-weight: 400; font-size: 38px; line-height: 1.15; color: #1E3F96;">Cell Biology</h1>
+<p style="margin: 6px 0 0; color: #5B616B;">Exam 2 is Oct 16, in 12 days.</p>
+
+<div style="margin-top: 26px;">
+<div style="display: flex; align-items: flex-end; gap: 4px; padding-left: 6px;">
+<button type="button" aria-current="true" style="height: 40px; padding: 0 24px; border: 0; background: #F2DCA5; font-family: 'Architects Daughter', cursive; font-weight: 400; font-size: 17px; color: #1E3F96; cursor: pointer; clip-path: polygon(0 100%, 10% 0, 90% 0, 100% 100%);">Week</button>
+<button type="button" style="height: 34px; padding: 0 22px; border: 0; background: #E4C886; font-family: 'Architects Daughter', cursive; font-weight: 400; font-size: 16px; color: #4A3F1E; cursor: pointer; clip-path: polygon(0 100%, 10% 0, 90% 0, 100% 100%);">Topics</button>
+<button type="button" style="height: 34px; padding: 0 22px; border: 0; background: #E4C886; font-family: 'Architects Daughter', cursive; font-weight: 400; font-size: 16px; color: #4A3F1E; cursor: pointer; clip-path: polygon(0 100%, 10% 0, 90% 0, 100% 100%);">Files</button>
+</div>
+<div style="padding: 16px 14px 16px; background: #F2DCA5; border-radius: 0 14px 14px 14px; box-shadow: 0 2px 0 #D9BE7C, 0 16px 26px -22px rgba(74, 56, 14, 0.75);">
+
+<ol aria-label="This week" style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; text-align: center;">
+<li aria-label="Monday 28, done" style="display: flex; flex-direction: column; align-items: center;"><span style="font-size: 12px; color: #4A3F1E;">Mon</span><span style="font-family: 'Architects Daughter', cursive; font-weight: 400; font-size: 19px; line-height: 1.4;">28</span><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24"><path d="M4.5 13.2c2 1.6 3.4 3.3 4.6 5.3C11.8 12.6 15.4 8 20 4.6" fill="none" stroke="#1E3F96" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></li>
+<li aria-label="Tuesday 29, done" style="display: flex; flex-direction: column; align-items: center;"><span style="font-size: 12px; color: #4A3F1E;">Tue</span><span style="font-family: 'Architects Daughter', cursive; font-weight: 400; font-size: 19px; line-height: 1.4;">29</span><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24"><path d="M4.5 13.2c2 1.6 3.4 3.3 4.6 5.3C11.8 12.6 15.4 8 20 4.6" fill="none" stroke="#1E3F96" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></li>
+<li aria-label="Wednesday 30, done" style="display: flex; flex-direction: column; align-items: center;"><span style="font-size: 12px; color: #4A3F1E;">Wed</span><span style="font-family: 'Architects Daughter', cursive; font-weight: 400; font-size: 19px; line-height: 1.4;">30</span><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24"><path d="M4.5 13.2c2 1.6 3.4 3.3 4.6 5.3C11.8 12.6 15.4 8 20 4.6" fill="none" stroke="#1E3F96" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></li>
+<li aria-label="Thursday 1, done" style="display: flex; flex-direction: column; align-items: center;"><span style="font-size: 12px; color: #4A3F1E;">Thu</span><span style="font-family: 'Architects Daughter', cursive; font-weight: 400; font-size: 19px; line-height: 1.4;">1</span><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24"><path d="M4.5 13.2c2 1.6 3.4 3.3 4.6 5.3C11.8 12.6 15.4 8 20 4.6" fill="none" stroke="#1E3F96" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></li>
+<li aria-label="Friday 2, done" style="display: flex; flex-direction: column; align-items: center;"><span style="font-size: 12px; color: #4A3F1E;">Fri</span><span style="font-family: 'Architects Daughter', cursive; font-weight: 400; font-size: 19px; line-height: 1.4;">2</span><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24"><path d="M4.5 13.2c2 1.6 3.4 3.3 4.6 5.3C11.8 12.6 15.4 8 20 4.6" fill="none" stroke="#1E3F96" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></li>
+<li aria-label="Saturday 3, done" style="display: flex; flex-direction: column; align-items: center;"><span style="font-size: 12px; color: #4A3F1E;">Sat</span><span style="font-family: 'Architects Daughter', cursive; font-weight: 400; font-size: 19px; line-height: 1.4;">3</span><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24"><path d="M4.5 13.2c2 1.6 3.4 3.3 4.6 5.3C11.8 12.6 15.4 8 20 4.6" fill="none" stroke="#1E3F96" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></li>
+<li aria-label="Sunday 4, today" style="display: flex; flex-direction: column; align-items: center;"><span style="font-size: 12px; font-weight: 700; color: #23272E;">Sun</span><span style="position: relative; font-family: 'Architects Daughter', cursive; font-weight: 400; font-size: 19px; line-height: 1.4; color: #1E3F96;">4<svg aria-hidden="true" width="36" height="34" viewBox="0 0 40 38" style="position: absolute; left: 50%; top: 50%; margin: -17px 0 0 -18px;"><path d="M21 3.2C30.6 2.8 37.6 9 37.2 18.6 36.8 28.2 29.2 34.8 19.8 34.6 10.4 34.4 2.8 27.6 3 18.6 3.2 9.6 10.4 3.4 19.6 4.2" fill="none" stroke="#1E3F96" stroke-width="2" stroke-linecap="round"></path></svg></span><span style="height: 14px;"></span></li>
+</ol>
+
+<h2 style="margin: 18px 0 10px; font-family: 'Architects Daughter', cursive; font-weight: 400; font-size: 22px; line-height: 1.15; color: #1E3F96;">Today</h2>
+<div style="display: flex; flex-direction: column; gap: 12px;">
+
+<a href="#" style="display: block; padding: 4px 14px 12px; background: #FFFFFF; border-radius: 3px; text-decoration: none; color: #23272E; box-shadow: 0 1px 0 #E3E6EC, 0 8px 16px -12px rgba(30, 63, 150, 0.55); background-image: linear-gradient(180deg, transparent 0 32px, #EE9A9A 32px 33.5px, transparent 33.5px);">
+<span style="display: flex; align-items: center; justify-content: space-between; height: 28px;"><span style="font-family: 'Architects Daughter', cursive; font-weight: 400; font-size: 15px; color: #5B616B;">Study guide</span><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="#5B616B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+<span style="display: block; margin-top: 8px; font-weight: 700;">Glycolysis</span>
+<span style="display: flex; align-items: center; flex-wrap: wrap; gap: 2px 12px; font-size: 0.88em; color: #5B616B;"><span>12 minute read</span><span style="display: inline-flex; align-items: center; gap: 4px;"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24"><path d="M20.5 11.6l-8.2 8.2a5.2 5.2 0 0 1-7.4-7.4l8.6-8.6a3.4 3.4 0 0 1 4.8 4.8l-8.4 8.4a1.7 1.7 0 0 1-2.4-2.4l7.6-7.6" fill="none" stroke="#5B616B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Lecture 5.pptx</span></span>
+</a>
+
+<a href="#" style="display: block; padding: 4px 14px 12px; background: #FFFFFF; border-radius: 3px; text-decoration: none; color: #23272E; box-shadow: 0 1px 0 #E3E6EC, 0 8px 16px -12px rgba(30, 63, 150, 0.55); background-image: linear-gradient(180deg, transparent 0 32px, #EE9A9A 32px 33.5px, transparent 33.5px);">
+<span style="display: flex; align-items: center; justify-content: space-between; height: 28px;"><span style="font-family: 'Architects Daughter', cursive; font-weight: 400; font-size: 15px; color: #5B616B;">Flashcards</span><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="#5B616B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+<span style="display: block; margin-top: 8px; font-weight: 700;"><span style="padding: 0 3px; background: linear-gradient(180deg, transparent 35%, #FFE96B 35%, #FFE96B 92%, transparent 92%);">8 cards due</span></span>
+<span style="display: block; font-size: 0.88em; color: #5B616B;">About 4 minutes</span>
+</a>
+
+<a href="phone-quiz.html" style="display: block; padding: 4px 14px 12px; background: #FFFFFF; border-radius: 3px; text-decoration: none; color: #23272E; box-shadow: 0 1px 0 #E3E6EC, 0 8px 16px -12px rgba(30, 63, 150, 0.55); background-image: linear-gradient(180deg, transparent 0 32px, #EE9A9A 32px 33.5px, transparent 33.5px);">
+<span style="display: flex; align-items: center; justify-content: space-between; height: 28px;"><span style="font-family: 'Architects Daughter', cursive; font-weight: 400; font-size: 15px; color: #5B616B;">Quiz</span><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="#5B616B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+<span style="display: block; margin-top: 8px; font-weight: 700;">10 questions</span>
+<span style="display: block; font-size: 0.88em; color: #5B616B;">About 6 minutes. Not started yet.</span>
+</a>
+
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
